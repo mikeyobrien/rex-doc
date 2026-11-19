@@ -27,6 +27,20 @@
 4. **Show each thing once.** There's one status line (file, mode, position), and it's quiet.
 5. **It stays until you close it.** No popups that close by themselves (the lesson from Tern).
 
+## Top bar
+
+The one fancy, graphical element in rdxt. At most two lines. It adapts to where rdxt runs:
+
+| Where | Top bar |
+|---|---|
+| **In Rex, in a pane or full screen** | Colorful and feature-rich. Line 1: Back `‹` and Forward `›` pills, the Rex mark and a breadcrumb trail on the left; **Outline**, **Search** and **?** (help) pills on the right. Line 2: a rule shading from magenta to blue to cyan. Later: settings. |
+| **In a floating Rex window** | The same, more compact, with a red **✕** close pill. rdxt knows it's floating from Rex's session view (the layer's `kind` is `floating`), checked just after the first screen is drawn. |
+| **Outside Rex** | Plain: one dim line with the breadcrumb and key hints. No colors, no icons. |
+
+- **Pills have rounded ends**, drawn with the powerline round caps (U+E0B6 and U+E0B4). Rex bundles `SymbolsNerdFont-Regular.ttf`, so they work whatever font the user picks. If a Rex setup ever shows boxes instead, the fallback is to draw just the caps as tiny kitty-graphics images, with the labels still as real text.
+- **Every pill is clickable**, and tappable on iPad.
+- Rex's own pane header shows the document name, because rdxt sets its block's label.
+
 ## Modes
 
 There are exactly two modes: **View mode** and **Source mode**. Source mode is always editable; there's no separate edit mode.
