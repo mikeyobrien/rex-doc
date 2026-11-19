@@ -314,9 +314,9 @@ func (l *layout) list(n *ast.List, first, rest []Span) {
 		switch {
 		case taskBox(item) != nil:
 			if taskBox(item).IsChecked {
-				marker = Span{Text: "☑", Style: Plain.With(Green), Src: -1}
+				marker = Span{Text: "●", Style: Style{FG: Green, BG: Default, Bold: true, Link: -1}, Src: -1}
 			} else {
-				marker = Span{Text: "☐", Style: Plain.With(BrightBlack), Src: -1}
+				marker = Span{Text: "○", Style: Plain.With(BrightBlack), Src: -1}
 			}
 		case n.IsOrdered():
 			marker = Span{Text: fmt.Sprintf("%*d.", numW, num), Style: Plain.With(BrightBlack), Src: -1}

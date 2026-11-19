@@ -71,7 +71,7 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 | H1/H2 | Bigger text where the terminal supports kitty text sizing (OSC 66, detected at start-up). Otherwise bold, colored, with a rule under H1. |
 | H3–H6 | Weight and color steps |
 | Paragraphs | Wrapped to the reading width, never broken mid-word |
-| Lists | Hanging indents. Task lists show ☐ / ☑, and **`Space` toggles one and saves the file.** |
+| Lists | Hanging indents. Task lists show round markers: ○ for open (dim) and ● for done (bold green). **`Space` toggles one and saves the file.** |
 | Blockquotes | A colored left bar `▎` |
 | Alerts | A left bar in the alert's color, an icon and a title row |
 | Code blocks | A shaded background, the language label at top right, Chroma highlighting. In narrow panes, a long line scrolls sideways instead of wrapping. |
@@ -154,6 +154,7 @@ v1 shouldn't block any of this: keep the source positions and the reload path cl
 
 - **No settings while in development.** rdxt is 100% opinionated: one look, no themes. Themes may come later.
 - **Status line:** has one blank line of padding above it.
+- **Task markers:** round, ○ and ●. Other styles may be added later.
 
 - **Mode keys:** `e` goes from View to Source, and `Esc` goes back. Not `Tab`.
 - **Source editing:** vim-like by default, with a modeless setting.
@@ -172,5 +173,4 @@ Rex 0.1.0-preview.21 on macOS, using `scripts/probe.py` and `scripts/mouse-probe
 
 - **Text selection for copying:** tabled for later. Rex keeps Shift-click for itself, so Shift-drag may already select text while rdxt has the mouse.
 - **"Silent" edits in View mode:** should interactive elements change the file directly from View mode? Toggling a task checkbox is the first example. Others could be ticking off a review item or editing a frontmatter value. If yes, each one needs a visible flash ("saved") and an undo.
-- **Checkbox size:** ☐/☑ looks small in Rex. Options are being compared.
 - **Resizing on iPad:** Rex on iPad doesn't seem to send SIGWINCH, so rdxt now also checks the size every 400 ms.
