@@ -52,7 +52,7 @@ These were chosen on purpose, often after comparing options side by side in a re
 | **Frontmatter is hidden in View mode.** `m` shows it as a card. | Most previews show frontmatter badly. When shown, it should look deliberate. |
 | **Task markers are bold round brackets**: `( )` when open, `(✔)` with a green heavy check when done, and done items dimmed. | Chosen from several options. They don't clash with bullets or alert icons, and finished items fade back in long review lists. |
 | **Alert icons and markers must be one cell wide** (● ◆ ■ ▲ ▼). | Characters with ambiguous width (like ⓘ) are drawn two cells wide in some terminals and run into the next character. |
-| **H1 gets a heavy magenta rule, H2 a thin rule.** | Headings need weight without big text. Most terminals, including Rex, don't support OSC 66 text sizing yet. rdxt detects it and will use it when available. |
+| **H1 is always in capitals, with a heavy magenta rule; H2 gets a thin rule.** A frontmatter `title` is shown as the H1 when the document has no H1. | Headings need weight without big text. Most terminals, including Rex, don't support OSC 66 text sizing yet. rdxt detects it and will use it when available. |
 | **The reading width is at most 88 columns**, centered, with a compact layout under 60 columns. | Long lines are hard to read, and narrow panes (iPad split view, phones) need tighter margins. |
 
 ## Welcome contributions

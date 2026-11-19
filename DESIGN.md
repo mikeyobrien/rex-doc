@@ -68,7 +68,7 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 
 | Element | View mode |
 |---|---|
-| H1/H2 | Bigger text where the terminal supports kitty text sizing (OSC 66, detected at start-up). Otherwise bold, colored, with a rule under H1. |
+| H1/H2 | H1 is always in capitals. A frontmatter `title` is shown as the H1 when the document has none. Bigger text where the terminal supports kitty text sizing (OSC 66, detected at start-up). Otherwise bold, colored, with a rule under H1. |
 | H3–H6 | Weight and color steps |
 | Paragraphs | Wrapped to the reading width, never broken mid-word |
 | Lists | Hanging indents. Task lists show round brackets: a bold `( )` when open, and a bold `(✔)` with a green heavy check when done. A finished task's text is dimmed. **`Space` toggles one and saves the file.** |

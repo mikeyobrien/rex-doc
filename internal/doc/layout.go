@@ -50,6 +50,10 @@ func Render(src []byte, termWidth int, opts Options) *Doc {
 		if opts.ShowFrontmatter {
 			l.frontmatter(items)
 		}
+		// A frontmatter title stands in for the H1 when the document has none.
+		if title := frontmatterTitle(items); title != "" && !hasH1(root) {
+			l.titleHeading(title)
+		}
 	}
 	l.blocks(root, nil, nil, false)
 	// Drop trailing blank lines.
@@ -204,9 +208,12 @@ func (l *layout) heading(n *ast.Heading, first, rest []Span) {
 	st := headingStyles[min(max(n.Level, 1), 6)]
 	spans := l.inlines(n, st, -1)
 	src := l.srcOf(n)
-	lines := wrap(spans, l.width, first, rest, src)
 	plain := plainText(spans)
 	l.doc.Headings = append(l.doc.Headings, Heading{Level: n.Level, Text: plain, Slug: l.slug(plain), Line: len(l.doc.Lines)})
+	if n.Level == 1 {
+		spans = upper(spans)
+	}
+	lines := wrap(spans, l.width, first, rest, src)
 	for i := range lines {
 		lines[i].Heading = n.Level
 	}
@@ -225,6 +232,50 @@ func plainText(spans []Span) string {
 		b.WriteString(s.Text)
 	}
 	return strings.TrimSpace(b.String())
+}
+
+// upper capitalizes H1 text so it stands out. Inline code keeps its case.
+func upper(spans []Span) []Span {
+	out := clone(spans)
+	for i := range out {
+		if out[i].Style.FG != Cyan {
+			out[i].Text = strings.ToUpper(out[i].Text)
+		}
+	}
+	return out
+}
+
+func hasH1(root ast.Node) bool {
+	found := false
+	ast.Walk(root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if h, ok := n.(*ast.Heading); ok && entering && h.Level == 1 {
+			found = true
+			return ast.WalkStop, nil
+		}
+		return ast.WalkContinue, nil
+	})
+	return found
+}
+
+func frontmatterTitle(items yaml.MapSlice) string {
+	for _, it := range items {
+		if strings.EqualFold(fmt.Sprint(it.Key), "title") {
+			return strings.TrimSpace(fmt.Sprint(it.Value))
+		}
+	}
+	return ""
+}
+
+// titleHeading draws a frontmatter title as the document's H1.
+func (l *layout) titleHeading(title string) {
+	l.doc.Headings = append(l.doc.Headings, Heading{Level: 1, Text: title, Slug: l.slug(title), Line: len(l.doc.Lines)})
+	lines := wrap([]Span{{Text: strings.ToUpper(title), Style: headingStyles[1], Src: 0}}, l.width, nil, nil, 0)
+	for i := range lines {
+		lines[i].Heading = 1
+	}
+	l.emit(lines...)
+	l.emit(Line{Spans: []Span{{Text: strings.Repeat("━", l.width), Style: Plain.With(Magenta), Src: -1}}, Src: -1})
+	l.emit(Line{Src: -1})
 }
 
 // slug makes a GitHub-style anchor for a heading.
