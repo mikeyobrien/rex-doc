@@ -68,6 +68,19 @@ func (v *viewer) bar() ([]string, []hit) {
 	if v.floating {
 		tools = append(tools, pillSpec{" ✕ ", " ✕ ", doc.Red, "close"})
 	}
+	// The mode comes first: View, Source or Insert, with ● for unsaved edits.
+	modeP := pillSpec{" View ", " V ", doc.Green, "mode"}
+	if v.mode == sourceMode {
+		modeP = pillSpec{" Source ", " S ", doc.Blue, "mode"}
+		if v.ed.insert {
+			modeP = pillSpec{" Insert ", " I ", doc.BrightMagenta, "mode"}
+		}
+	}
+	if v.dirty() {
+		modeP.label = strings.TrimRight(modeP.label, " ") + " ● "
+		modeP.short = strings.TrimRight(modeP.short, " ") + "● "
+	}
+	tools = append([]pillSpec{modeP}, tools...)
 	compact := w < 72
 	var right strings.Builder
 	rightW := 0
@@ -239,6 +252,16 @@ func (v *viewer) barClick(x int, was state) {
 				v.goBack()
 			case "forward":
 				v.goForward()
+			case "mode":
+				if v.mode == viewMode {
+					v.enterSource()
+				} else {
+					if v.ed.insert {
+						v.ed.insert = false
+						v.ed.clampCursor()
+					}
+					v.leaveSource()
+				}
 			case "outline":
 				if was != outlining {
 					v.openOutline()
@@ -275,6 +298,9 @@ var helpKeys = [][2]string{
 	{"H L", "back, forward"},
 	{"/  n N", "search, next, previous"},
 	{"m", "show frontmatter"},
+	{"e  Esc", "Source mode, back to View"},
+	{"E", "edit in Neovim"},
+	{"tap ( )", "tick a task (u undoes)"},
 	{"r", "reload"},
 	{"Esc", "clear selection"},
 	{"q", "quit"},

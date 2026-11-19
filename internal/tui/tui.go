@@ -81,6 +81,20 @@ type viewer struct {
 	hits []hit
 	// quit is set by the close pill.
 	quit bool
+
+	// mode is View or Source; ed is Source mode's buffer.
+	mode mode
+	ed   *editor
+	// hl caches Source mode's highlighting for hlText.
+	hl     [][]doc.Span
+	hlText string
+	// viewUndo holds the file before each edit made from View mode.
+	viewUndo [][]byte
+	// diskChanged is set when the file changed on disk under unsaved edits.
+	diskChanged bool
+
+	inFd     int
+	oldState *term.State
 }
 
 type match struct {
@@ -111,10 +125,11 @@ func Run(path string) error {
 		return err
 	}
 	defer term.Restore(int(in.Fd()), old)
+	v.inFd, v.oldState = int(in.Fd()), old
 
 	// Alternate screen, hidden cursor, mouse clicks and wheel (SGR encoding).
 	v.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
-	defer v.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[?1049l")
+	defer v.write("\x1b[?1006l\x1b[?1000l\x1b[0 q\x1b[?25h\x1b[?1049l")
 
 	v.resize()
 	if launches() == starAskLaunch {
@@ -225,7 +240,22 @@ func (v *viewer) checkReload() {
 	if err != nil || (st.ModTime().Equal(v.mod) && st.Size() == v.size) {
 		return
 	}
+	if v.dirty() {
+		// Don't lose unsaved edits; :w will overwrite the file.
+		if !v.diskChanged {
+			v.diskChanged = true
+			v.setFlash("file changed on disk · :w overwrites it")
+		}
+		return
+	}
+	v.diskChanged = false
 	if v.load() == nil {
+		if v.ed != nil {
+			row, col, top := v.ed.row, v.ed.col, v.ed.top
+			v.ed.set(string(v.src))
+			v.ed.row, v.ed.col, v.ed.top = row, col, top
+			v.ed.clampCursor()
+		}
 		v.relayout()
 		v.setFlash("reloaded")
 	}
@@ -284,6 +314,19 @@ func (v *viewer) mouse(btn, x, y int, press bool) {
 		return
 	}
 	y -= top
+	if v.mode == sourceMode && v.state == reading {
+		switch btn &^ (4 | 8 | 16) {
+		case 64:
+			v.ed.moveRow(-3)
+		case 65:
+			v.ed.moveRow(3)
+		case 0:
+			if !press && y < v.rows() {
+				v.sourceClick(x, y)
+			}
+		}
+		return
+	}
 	switch btn &^ (4 | 8 | 16) {
 	case 64:
 		if v.state == outlining {
@@ -312,6 +355,13 @@ func (v *viewer) mouse(btn, x, y int, press bool) {
 		if y >= v.rows() {
 			return
 		}
+		// A tap on a task's ( ) ticks it.
+		if i := v.top + y; i < len(v.doc.Lines) && v.doc.Lines[i].TaskCols > 0 {
+			if c := x - v.doc.Margin; c >= 0 && c < v.doc.Lines[i].TaskCols {
+				v.toggleTask(i)
+				return
+			}
+		}
 		if l := v.doc.LinkAt(v.top+y, x-v.doc.Margin); l >= 0 {
 			v.sel = l
 			v.follow(l)
@@ -322,6 +372,7 @@ func (v *viewer) mouse(btn, x, y int, press bool) {
 // Escape sequences for keys rdxt uses.
 var seqs = map[string]string{
 	"\x1b[A": "up", "\x1b[B": "down", "\x1bOA": "up", "\x1bOB": "down",
+	"\x1b[C": "right", "\x1b[D": "left", "\x1bOC": "right", "\x1bOD": "left", "\x1b[3~": "delete",
 	"\x1b[5~": "pgup", "\x1b[6~": "pgdn", "\x1b[Z": "shift-tab",
 	"\x1b[H": "home", "\x1b[F": "end", "\x1b[1~": "home", "\x1b[4~": "end", "\x1bOH": "home", "\x1bOF": "end",
 }
@@ -368,6 +419,9 @@ func (v *viewer) key(k string) bool {
 		}
 		return false
 	}
+	if v.mode == sourceMode {
+		return v.sourceKey(k)
+	}
 	if v.pending == "g" {
 		v.pending = ""
 		if k == "g" {
@@ -379,7 +433,21 @@ func (v *viewer) key(k string) bool {
 	page := max(v.rows()-2, 1)
 	switch k {
 	case "q", "\x03":
+		if v.dirty() {
+			v.setFlash("unsaved changes: e then :w to save, or :q! to discard")
+			return false
+		}
 		return true
+	case "e":
+		v.enterSource()
+	case "E":
+		line := 1
+		if v.top > 0 {
+			line = bytes.Count(v.src[:min(v.doc.SrcForLine(v.top), len(v.src))], []byte("\n")) + 1
+		}
+		v.openNeovim(line)
+	case "u":
+		v.undoView()
 	case "esc":
 		v.sel = -1
 		v.query, v.matches = "", nil
@@ -840,6 +908,10 @@ func (v *viewer) outlineKey(k string) {
 		v.fwd = nil
 		v.top = v.doc.Headings[v.osel].Line
 		v.clamp()
+		if v.mode == sourceMode {
+			v.ed.row = v.ed.rowAt(v.doc.SrcForLine(v.top))
+			v.ed.top, v.ed.col = max(v.ed.row-1, 0), 0
+		}
 	}
 }
 
@@ -860,11 +932,14 @@ func (v *viewer) draw() {
 		b.WriteString("\x1b[2K" + line + "\r\n")
 	}
 	rows := v.rows()
-	switch v.state {
-	case outlining:
+	crow, ccol := -1, -1
+	switch {
+	case v.state == outlining:
 		v.drawOutline(&b, rows)
-	case helping:
+	case v.state == helping:
 		v.drawHelp(&b, rows)
+	case v.mode == sourceMode:
+		crow, ccol = v.drawSource(&b, rows, len(bar))
 	default:
 		over := v.overlays()
 		for r := 0; r < rows; r++ {
@@ -875,6 +950,16 @@ func (v *viewer) draw() {
 	}
 	b.WriteString("\x1b[2K\r\n\x1b[2K")
 	b.WriteString(v.status())
+	if crow >= 0 && v.state == reading {
+		// A bar cursor while typing, a block otherwise.
+		shape := "\x1b[2 q"
+		if v.ed.insert {
+			shape = "\x1b[6 q"
+		}
+		b.WriteString(fmt.Sprintf("\x1b[%d;%dH%s\x1b[?25h", crow+1, ccol+1, shape))
+	} else {
+		b.WriteString("\x1b[?25l")
+	}
 	b.WriteString("\x1b[?2026l")
 	v.write(b.String())
 }
@@ -977,7 +1062,14 @@ func (v *viewer) status() string {
 		}
 	}
 	right := "View · " + pos
+	if v.mode == sourceMode && v.state == reading {
+		left, right = v.sourceStatus()
+		if v.flash != "" {
+			right = v.flash + " · " + right
+		}
+	}
 	switch {
+	case v.mode == sourceMode && v.state == reading:
 	case v.state == searching:
 		left = "/" + v.typing + "▏"
 		right = "Enter search · Esc cancel"

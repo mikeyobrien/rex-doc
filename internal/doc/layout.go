@@ -388,6 +388,10 @@ func (l *layout) list(n *ast.List, first, rest []Span) {
 		r := append(clone(rest), Span{Text: spaces(mw), Style: Plain, Src: -1})
 		startLine := len(l.doc.Lines)
 		l.blocks(item, f, r, n.IsTight)
+		if taskBox(item) != nil && startLine < len(l.doc.Lines) {
+			l.doc.Lines[startLine].Task = l.srcOf(item)
+			l.doc.Lines[startLine].TaskCols = spansWidth(f)
+		}
 		if done {
 			// A finished task's text fades back.
 			for li := startLine; li < len(l.doc.Lines); li++ {

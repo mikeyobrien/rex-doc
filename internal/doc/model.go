@@ -110,6 +110,12 @@ type Line struct {
 	Src int
 	// Heading is the heading level (1–6) if this line is a heading's text.
 	Heading int
+	// TaskCols is set on the first line of a task-list item: the column
+	// (after the margin) where its marker ends, for clicks. 0 otherwise.
+	TaskCols int
+	// Task is the source offset of the task item's text, when TaskCols > 0.
+	// Its checkbox is just before it on the same source line.
+	Task int
 }
 
 // Link is a link target found in the document.

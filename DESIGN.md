@@ -64,7 +64,12 @@ View ──e──▶ Source (normal) ──i──▶ Source (insert: typing)
 - Source mode is vim-like by default: normal and insert modes; `hjkl`, `w/b`, `0/$`, `gg/G`; `dd`, `yy`, `p`; `u` and `Ctrl-R` for undo and redo; `:w`, `:q`. Arrow keys also work.
 - **Modeless option:** `rdxt config set editing modeless`. Source mode then opens ready for typing, `Ctrl-S` saves, and `Esc` goes straight back to View.
 - Switching modes keeps your place, using the source positions from the parser.
-- Unsaved changes are shown in the status line. Going back to View renders the buffer you're editing, not the file on disk, so you can check an edit before saving.
+- Unsaved changes show as a ● on the mode pill (View ●, Source ●, Insert ●) and in the status line. Going back to View renders the buffer you're editing, not the file on disk, so you can check an edit before saving. Undoing back to the saved text counts as clean.
+- **Lists continue themselves:** Enter on a list item starts the next one (`- `, `1.` → `2.`, `- [ ]`, `> `); Enter on an empty item ends the list.
+- Long lines soft-wrap; line numbers are dim, the current one bold. The cursor is a block in normal mode and a bar while typing. A tap places the cursor.
+- If the file changes on disk while you have unsaved edits, rdxt keeps your edits and says so; `:w` overwrites the file.
+- `q` won't quit with unsaved edits. Use `:w`, or `:q!` to discard.
+- The mode pill in the top bar is clickable: it switches between View and Source.
 - In Rex, `E` opens Neovim in a split. Elsewhere it runs `$EDITOR` in the same pane. The view reloads when you come back.
 - Any non-Markdown text file opens straight into Source mode, which covers quick edits like the Tern `.bashrc` case.
 
@@ -95,7 +100,7 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 | H1/H2 | H1 is always in capitals. A frontmatter `title` is shown as the H1 when the document has none. Bigger text where the terminal supports kitty text sizing (OSC 66, detected at start-up). Otherwise bold, colored, with a rule under H1. |
 | H3–H6 | Weight and color steps |
 | Paragraphs | Wrapped to the reading width, never broken mid-word |
-| Lists | Hanging indents. Task lists show round brackets: a bold `( )` when open, and a bold `(✔)` with a green heavy check when done. A finished task's text is dimmed. **`Space` toggles one and saves the file.** |
+| Lists | Hanging indents. Task lists show round brackets: a bold `( )` when open, and a bold `(✔)` with a green heavy check when done. A finished task's text is dimmed. **Tapping or clicking a task's `( )` ticks it and saves the file**; `u` in View mode undoes it. (`Space` stays page down.) |
 | Blockquotes | A colored left bar `▎` |
 | Alerts | A left bar in the alert's color, an icon and a title row |
 | Code blocks | A shaded background, the language label at top right, Chroma highlighting. In narrow panes, a long line scrolls sideways instead of wrapping. |
@@ -110,6 +115,7 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 - **View mode:** the Rex app icon drawn inline with kitty graphics, 2 cells wide. Rex supports kitty graphics (confirmed by the probe). Other terminals get 🦖.
 - **Source mode:** the icon is shown in place of the text `:rex:` (like vim's conceal), except on the line the cursor is on. There it shows the raw `:rex:` so you can edit it.
 - The Rex icon is Superlogical's artwork, so **it is not committed to this repo**. A local build step (`make rex-icon`) takes it from an installed Rex (`/Applications/Rex Beta.app/Contents/Resources/App Icon.icns`) and makes a small PNG in an ignored folder. Builds without it fall back to 🦖. We can ask Superlogical whether public builds may include it.
+- Later: send Rex's team an icon for rdxt, so Rex can show it in tabs.
 - Maybe later: the Discord `:rexie_*:` emoji (like `:rexie_starstruck:` from the changelog).
 
 ## Layout by width

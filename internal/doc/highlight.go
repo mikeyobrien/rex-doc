@@ -7,6 +7,9 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
+// Highlight splits source into lines of styled spans, for Source mode.
+func Highlight(code, lang string) [][]Span { return highlight(code, lang) }
+
 // highlight splits code into lines of styled spans. Colors come only from the
 // terminal's 16-color palette, so code follows the terminal's theme.
 func highlight(code, lang string) [][]Span {
@@ -66,8 +69,14 @@ func tokenStyle(t chroma.TokenType) Style {
 		st.FG = Green
 	case t == chroma.GenericDeleted || t == chroma.Error:
 		st.FG = Red
-	case t == chroma.GenericHeading || t == chroma.GenericSubheading:
+	case t == chroma.GenericHeading:
+		st.FG, st.Bold = Magenta, true
+	case t == chroma.GenericSubheading:
+		st.FG, st.Bold = Blue, true
+	case t == chroma.GenericStrong:
 		st.Bold = true
+	case t == chroma.GenericEmph:
+		st.Italic = true
 	}
 	return st
 }
