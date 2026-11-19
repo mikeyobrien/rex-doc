@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <defs>
+    <linearGradient id="rdxt-g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C678DD"/>
+      <stop offset="0.55" stop-color="#61AFEF"/>
+      <stop offset="1" stop-color="#56B6C2"/>
+    </linearGradient>
+  </defs>
+  <!-- the page, with its top-right corner folded -->
+  <path d="M6.5 2.25h8.25L19.5 7v13.25a1.5 1.5 0 0 1-1.5 1.5H6.5a1.5 1.5 0 0 1-1.5-1.5V3.75a1.5 1.5 0 0 1 1.5-1.5z" fill="#1E222A" stroke="#ABB2BF" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M14.75 2.25V6a1 1 0 0 0 1 1h3.75" fill="none" stroke="#ABB2BF" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- the heading, in rdxt's top-bar colors -->
+  <rect x="7.75" y="9.5" width="8.5" height="2.5" rx="1.25" fill="url(#rdxt-g)"/>
+  <!-- two lines of text -->
+  <rect x="7.75" y="14" width="8.5" height="1.5" rx="0.75" fill="#ABB2BF"/>
+  <rect x="7.75" y="17.25" width="5.5" height="1.5" rx="0.75" fill="#ABB2BF"/>
+</svg>
