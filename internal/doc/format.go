@@ -39,6 +39,7 @@ func (d *Doc) FormatWith(i int, color bool, ovs []Overlay) string {
 	}
 	sort.SliceStable(ovs, func(a, c int) bool { return ovs[a].Start < ovs[c].Start })
 	put := func(text string, st Style) {
+		text = Safe(text)
 		if !color {
 			b.WriteString(text)
 			return

@@ -328,7 +328,7 @@ func (v *viewer) drawSource(b *strings.Builder, rows, top int) (int, int) {
 					b.WriteString(" " + style + fmt.Sprintf("%*s", gw-2, num) + "\x1b[0m  ")
 					for _, sp := range s.spans {
 						sgr := sp.Style.SGR()
-						b.WriteString(sgr + sp.Text)
+						b.WriteString(sgr + doc.Safe(sp.Text))
 						if sgr != "" {
 							b.WriteString("\x1b[0m")
 						}

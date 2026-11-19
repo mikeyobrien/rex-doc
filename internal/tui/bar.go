@@ -167,11 +167,11 @@ func (v *viewer) breadcrumb(room, x int) (string, []hit) {
 		if v.back[i].path == last {
 			continue
 		}
-		trail = append([]crumb{{filepath.Base(v.back[i].path), steps}}, trail...)
+		trail = append([]crumb{{doc.Safe(filepath.Base(v.back[i].path)), steps}}, trail...)
 		last = v.back[i].path
 	}
 	sep := sgrFG(doc.BrightBlack) + " › " + "\x1b[0m"
-	current := "\x1b[1m" + runewidth.Truncate(filepath.Base(v.path), max(room, 4), "…") + "\x1b[0m"
+	current := "\x1b[1m" + runewidth.Truncate(doc.Safe(filepath.Base(v.path)), max(room, 4), "…") + "\x1b[0m"
 	used := visibleWidth(current)
 	// Add earlier crumbs from the nearest back while they fit.
 	var parts []string
@@ -223,7 +223,7 @@ func (v *viewer) plainBar() []string {
 		right = "? help"
 		room = v.width - barPad*2 - runewidth.StringWidth(right) - 2
 	}
-	left = runewidth.Truncate(left, max(room, 1), "…")
+	left = runewidth.Truncate(doc.Safe(left), max(room, 1), "…")
 	gap := v.width - barPad*2 - runewidth.StringWidth(left) - runewidth.StringWidth(right)
 	return []string{"\x1b[90m" + strings.Repeat(" ", barPad) + left + strings.Repeat(" ", max(gap, 1)) + right + "\x1b[0m", ""}
 }

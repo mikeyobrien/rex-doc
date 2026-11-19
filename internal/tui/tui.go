@@ -1077,7 +1077,7 @@ func (v *viewer) drawOutline(b *strings.Builder, rows int) {
 		if i < len(hs) {
 			h := hs[i]
 			indent := strings.Repeat("  ", max(h.Level-1, 0))
-			text := runewidth.Truncate(indent+h.Text, max(v.doc.Width-2, 4), "…")
+			text := runewidth.Truncate(indent+doc.Safe(h.Text), max(v.doc.Width-2, 4), "…")
 			if i == v.osel {
 				b.WriteString(margin + "\x1b[1;34m› " + text + "\x1b[0m")
 			} else if h.Level <= 2 {
@@ -1155,6 +1155,7 @@ func (v *viewer) status() string {
 		right = runewidth.Truncate(right, max(v.width/2, 4), "…")
 		room = v.width - runewidth.StringWidth(right) - 2
 	}
+	left, right = doc.Safe(left), doc.Safe(right)
 	left = runewidth.Truncate(left, max(room, 0), "…")
 	gap := v.width - margin*2 - runewidth.StringWidth(left) - runewidth.StringWidth(right)
 	if v.scold && v.flash != "" {
