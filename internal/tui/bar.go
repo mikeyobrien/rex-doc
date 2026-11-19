@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -65,8 +66,12 @@ func (v *viewer) bar() ([]string, []hit) {
 		{" ⌕ Search ", " ⌕ ", doc.Yellow, "search"},
 		{" ? ", " ? ", doc.Magenta, "help"},
 	}
+	// Floating windows can be docked into the tab, and panes floated.
 	if v.floating {
-		tools = append(tools, pillSpec{" ✕ ", " ✕ ", doc.Red, "close"})
+		tools = append(tools, pillSpec{" ⇲ Dock ", " ⇲ ", doc.BrightBlue, "dock"},
+			pillSpec{" ✕ ", " ✕ ", doc.Red, "close"})
+	} else if os.Getenv("REX_BLOCK") != "" {
+		tools = append(tools, pillSpec{" ⇱ ", " ⇱ ", doc.BrightBlack, "float"})
 	}
 	// The mode comes first: View, Source or Insert, with ● for unsaved edits.
 	modeP := pillSpec{" View ", " V ", doc.Green, "mode"}
@@ -274,6 +279,18 @@ func (v *viewer) barClick(x int, was state) {
 				}
 			case "close":
 				v.quit = true
+			case "dock":
+				if rexDock() {
+					v.floating = false
+				} else {
+					v.setFlash("couldn't dock here")
+				}
+			case "float":
+				if rexFloat() {
+					v.floating = true
+				} else {
+					v.setFlash("couldn't float this pane")
+				}
 			case "crumb":
 				for i := 0; i < h.arg && len(v.back) > 0; i++ {
 					v.goBack()

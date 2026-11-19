@@ -6,7 +6,30 @@
 
 `rdxt` ("read text") opens a Markdown file as real terminal text, not a picture. So it uses your terminal's font, size and theme, zooms with ⌘+, and works with selection and scrolling, including on the iPad.
 
-> **Status:** early design. Nothing to install yet. See [DESIGN.md](DESIGN.md).
+## Install
+
+```sh
+go install github.com/travelingflwr/rex-doc/cmd/rdxt@latest
+rdxt setup
+```
+
+`rdxt setup` makes rdxt feel built into Rex:
+- **Cmd-click** a `.md` or `.dok` path in Rex, or double-click one in Finder, and it opens in a floating rdxt window.
+- **The Rex palette** gets *rdxt: Open Document…* and *rdxt: New Document…* (with Blank, Plan, Notes and Dok templates).
+- **Coding agents** (Claude Code, Codex, Cursor, OpenCode, Pi) get an rdxt skill, so they open the plans and reports they write.
+- **zsh** reports its folder to Rex, so relative names are clickable, and typing `notes.md` + Enter opens it.
+
+`rdxt setup --undo` puts everything back, including the app that opened Markdown before.
+
+## Use
+
+```sh
+rdxt notes.md                    # read it here
+rdxt open --float notes.md       # in a floating Rex window (--split, --tab)
+rdxt new --template plan fix-login
+```
+
+Press `?` in rdxt for every key.
 
 ## The idea
 

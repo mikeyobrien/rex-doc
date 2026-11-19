@@ -108,8 +108,17 @@ type match struct {
 	line, start, end int
 }
 
+// RunOptions change how the viewer starts.
+type RunOptions struct {
+	// Source starts in Source mode, ready to edit (for new documents).
+	Source bool
+}
+
 // Run shows path full screen until the user quits.
-func Run(path string) error {
+func Run(path string) error { return RunWith(path, RunOptions{}) }
+
+// RunWith is Run with options.
+func RunWith(path string, opts RunOptions) error {
 	in, out := os.Stdin, os.Stdout
 	if !term.IsTerminal(int(in.Fd())) {
 		tty, err := os.Open("/dev/tty")
@@ -144,6 +153,10 @@ func Run(path string) error {
 		defer v.write("\x1b_Ga=d,d=A,q=2\x1b\\")
 	}
 	v.resize()
+	recordRecent(v.path)
+	if opts.Source {
+		v.enterSource()
+	}
 	if launches() == starAskLaunch {
 		v.flash, v.flashT, v.flashFor = "★ Enjoying rdxt? A star helps: github.com/travelingflwr/rex-doc", time.Now(), 8*time.Second
 	}

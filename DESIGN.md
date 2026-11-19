@@ -118,6 +118,7 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 - **View mode:** the Rex app icon drawn inline with kitty graphics, 2 cells wide. Rex supports kitty graphics (confirmed by the probe). Other terminals get 🦖.
 - **Source mode:** the icon is shown in place of the text `:rex:` (like vim's conceal), except on the line the cursor is on. There it shows the raw `:rex:` so you can edit it.
 - The Rex icon is Superlogical's artwork, so **it is not committed to this repo**. A local build step (`make rex-icon`) takes it from an installed Rex (`/Applications/Rex Beta.app/Contents/Resources/App Icon.icns`) and makes a small PNG in an ignored folder. Builds without it fall back to 🦖. We can ask Superlogical whether public builds may include it.
+- Later: **folding sections** by heading in View mode.
 - Later: send Rex's team an icon for rdxt, so Rex can show it in tabs.
 - Maybe later: the Discord `:rexie_*:` emoji (like `:rexie_starstruck:` from the changelog).
 
