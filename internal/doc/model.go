@@ -5,6 +5,7 @@
 package doc
 
 import (
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -143,6 +144,13 @@ type Doc struct {
 type Options struct {
 	// ShowFrontmatter shows the frontmatter card at the top.
 	ShowFrontmatter bool
+	// Dok lays the source out as a Dok document instead of Markdown.
+	Dok bool
+}
+
+// OptionsFor returns the options a file needs, by its extension.
+func OptionsFor(path string) Options {
+	return Options{Dok: strings.EqualFold(filepath.Ext(path), ".dok")}
 }
 
 // LineForSrc returns the index of the first line at or after source offset src.

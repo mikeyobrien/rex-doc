@@ -64,6 +64,16 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 - **Math**: inline and block, with a best-effort Unicode version in the view and always shown exactly in Source
 - **`:::` directives** (the generic directive syntax that T3 Code, MyST and Comark use). These are also the extension point for later features.
 
+### Dok
+
+`.dok` files ([Dok](https://github.com/travelingflwr/dok) format) render too, chosen by the file's extension, with no option needed. Dok is meant to read well as plain text, so rdxt keeps its line structure:
+- **Section headers** (ALL CAPS on their own line) are styled like H2 and appear in the outline.
+- **`--` comment lines** are hidden.
+- **List items** (`--`, `—`, `-`) get bullets.
+- **Two-column rows** ("Term   Description") keep their alignment, with the term in bold, and long descriptions wrap under the description column.
+- **Backticks** are inline code.
+- **Long lines** wrap with a hanging indent. Nothing else is reflowed.
+
 ## How each element renders
 
 | Element | View mode |

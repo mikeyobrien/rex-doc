@@ -177,7 +177,9 @@ func (v *viewer) relayout() {
 	if v.doc != nil && v.top > 0 {
 		anchor = v.doc.SrcForLine(v.top)
 	}
-	v.doc = doc.Render(v.src, v.width, doc.Options{ShowFrontmatter: v.showFM})
+	opts := doc.OptionsFor(v.path)
+	opts.ShowFrontmatter = v.showFM
+	v.doc = doc.Render(v.src, v.width, opts)
 	if anchor >= 0 {
 		v.top = v.doc.LineForSrc(anchor)
 	}
@@ -544,7 +546,7 @@ func isURL(s string) bool {
 
 func isMarkdown(path string) bool {
 	switch strings.ToLower(filepath.Ext(path)) {
-	case ".md", ".markdown", ".mdown", ".mkd", ".mdx":
+	case ".md", ".markdown", ".mdown", ".mkd", ".mdx", ".dok":
 		return true
 	}
 	return false

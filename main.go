@@ -107,7 +107,9 @@ func printDoc(path string, width int, color bool) error {
 			width = 80
 		}
 	}
-	d := doc.Render(src, width, doc.Options{ShowFrontmatter: true})
+	opts := doc.OptionsFor(path)
+	opts.ShowFrontmatter = true
+	d := doc.Render(src, width, opts)
 	for i := range d.Lines {
 		fmt.Println(d.Format(i, color))
 	}

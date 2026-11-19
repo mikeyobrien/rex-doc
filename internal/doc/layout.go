@@ -42,6 +42,10 @@ func Render(src []byte, termWidth int, opts Options) *Doc {
 		d.Width = min(termWidth-4, ReadingWidth)
 		d.Margin = (termWidth - d.Width) / 2
 	}
+	if opts.Dok {
+		renderDok(src, d)
+		return d
+	}
 	ctx := parser.NewContext()
 	root := md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	l := &layout{src: src, width: d.Width, doc: d, slugs: map[string]int{}}
