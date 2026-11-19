@@ -32,7 +32,10 @@ def main():
     a = ap.parse_args()
 
     session = os.environ.get("REX_SESSION")
-    rdxt = subprocess.run(["which", "rdxt"], capture_output=True, text=True).stdout.strip() or "rdxt"
+    # Prefer this repo's build, so screenshots show the code being worked on.
+    local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "rdxt")
+    rdxt = os.path.abspath(local) if os.path.exists(local) else (
+        subprocess.run(["which", "rdxt"], capture_output=True, text=True).stdout.strip() or "rdxt")
     block = rex("run", "-s", session, "--focus=false", "--", rdxt, os.path.abspath(a.file))
     block = re.search(r"block:[0-9a-f-]+", block).group(0)
     try:

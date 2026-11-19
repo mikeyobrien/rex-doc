@@ -102,6 +102,8 @@ type viewer struct {
 	// cell size in pixels.
 	images       *imageState
 	cellW, cellH int
+	// diagrams is the last doc.DiagramsReady seen.
+	diagrams int64
 }
 
 type match struct {
@@ -213,6 +215,11 @@ func RunWith(path string, opts RunOptions) error {
 				v.resize()
 			}
 			v.checkReload()
+			// A Mermaid picture finished drawing in the background.
+			if n := doc.DiagramsReady.Load(); n != v.diagrams {
+				v.diagrams = n
+				v.relayout()
+			}
 			if v.flash != "" && time.Since(v.flashT) > max(v.flashFor, 2*time.Second) {
 				v.flash = ""
 			}

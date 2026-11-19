@@ -137,6 +137,17 @@ Images support the text; they don't take it over. This isn't a word processor.
 - **How:** kitty graphics with **Unicode placeholders**, so images are tied to text cells and scroll with the text at no extra cost. Rex supports them (`scripts/image-probe.py`, 2026-11-19) and keeps the image's proportions inside its cells. Direct placement stretched the image, so it isn't used.
 - **Later:** custom anchors and links to any spot in a document.
 
+### Mermaid diagrams
+
+A ```` ```mermaid ```` block is drawn as **text**, like everything else, so it zooms, follows the theme, and can be selected. The engine is `internal/mermaid`.
+
+- **Sequence diagrams:** participant boxes, dashed lifelines, solid and dashed arrows (`->>`, `-->>`, `-x`, `-)`, `<<->>`), self-messages, notes (left of, right of, over), `loop`/`alt`/`else`/`opt`/`par`/`critical`/`break` frames, `autonumber` and `title`. The participants are repeated at the bottom of long diagrams.
+- **Flowcharts** (`flowchart`/`graph`, TD, LR, BT, RL): a layered layout. Each node goes one layer below its parents, cycles are turned around (their arrows point back up), long edges pass through the layers between, and layers are ordered to reduce crossings. Edges are right-angled, with light, dotted (`-.->`) and heavy (`==>`) lines and labels (`-->|yes|`, `-- yes -->`). Shapes are rect `[ ]`, rounded `( )`, stadium, circle `(( ))`, decision `{ }` (◆ corners) and subroutine `[[ ]]`. Subgraphs are flattened, and styling lines are ignored.
+- **Pie charts** become horizontal bars with percentages, which read better in text than a circle.
+- **Too wide for the pane:** rdxt tries once more with tighter spacing, then shows the source with a note.
+- **Other kinds** (class, state, gantt, ER…): in Rex, if `mmdc` (mermaid-cli) is installed, a picture is drawn in the background, cached, and shown as a figure. Otherwise the source is shown, with a note.
+- Diagrams come from documents written by others, so the engine is tested against random input and must never panic.
+
 ## Layout by width
 
 | Pane width | Layout |

@@ -433,6 +433,9 @@ func (l *layout) code(n ast.Node, lang string, first, rest []Span) {
 	}
 	src := strings.TrimRight(strings.ReplaceAll(b.String(), "\t", "    "), "\n")
 	start := l.srcOf(n)
+	if strings.EqualFold(lang, "mermaid") && l.diagram(src, start, first, rest) {
+		return
+	}
 	gutter := Span{Text: "│ ", Style: Plain.With(BrightBlack), Src: -1}
 	if lang != "" {
 		label := Style{FG: BrightBlack, BG: Default, Italic: true, Link: -1}

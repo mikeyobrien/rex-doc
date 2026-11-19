@@ -112,7 +112,11 @@ func (l *layout) figure(img *ast.Image, first, rest []Span) {
 		l.card(first, rest, label, dest, caption, link, src)
 		return
 	}
+	l.placeFigure(path, cfg, caption, link, src, first, rest)
+}
 
+// placeFigure lays out a readable image as a figure: frame, cells, caption.
+func (l *layout) placeFigure(path string, cfg image.Config, caption string, link, src int, first, rest []Span) {
 	cw, ch := max(l.opts.CellW, 1), max(l.opts.CellH, 1)
 	avail := l.avail(rest) - 4
 	cols := min(avail, (cfg.Width+cw-1)/cw) // never scaled up

@@ -37,6 +37,10 @@ Press `?` in rdxt for every key.
 
 ![rdxt showing an agent's plan in Rex: the top bar, a capitalized title, an alert and ticked tasks](docs/screenshots/view.png)
 
+| Mermaid sequence diagrams | Mermaid flowcharts |
+|---|---|
+| ![A Mermaid sequence diagram drawn as text: participants, lifelines, numbered messages and a note](docs/screenshots/sequence.png) | ![A Mermaid flowchart drawn as text, with a decision node and labeled branches](docs/screenshots/flowchart.png) |
+
 | Source mode (`e`) | Search (`/`) | Outline (`o`) |
 |---|---|---|
 | ![Source mode with syntax colors and line numbers](docs/screenshots/source.png) | ![Search with every match highlighted](docs/screenshots/search.png) | ![The outline of a document](docs/screenshots/outline.png) |
@@ -48,6 +52,7 @@ Press `?` in rdxt for every key.
 - **Built for reviewing what agents write:** it opens fast and starts in View mode.
 - **Adapts to the pane:** compact in narrow panes (phone, iPad split view), with an outline sidebar in wide ones.
 - **Supports** CommonMark, GFM, GitHub alerts, frontmatter, math and `:::` directives.
+- **Mermaid diagrams drawn as text:** sequence diagrams, flowcharts (TD, LR, BT, RL) and pie charts, in your theme's colors. Other kinds show as a picture when `mmdc` is installed, or as their source.
 
 ## ⭐ Like it? Star it
 
