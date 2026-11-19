@@ -105,3 +105,29 @@ func TestCursorCanReachTheEndOfALine(t *testing.T) {
 		t.Fatalf("$: col %d, want 3 (after the last character)", e.col)
 	}
 }
+
+func TestEnterVariantsAreOneKey(t *testing.T) {
+	for _, in := range []string{"\r", "\n", "\r\n"} {
+		k, rest := nextKey([]byte(in + "x"))
+		if k != "\r" || string(rest) != "x" {
+			t.Errorf("nextKey(%q) = %q, %q", in, k, rest)
+		}
+	}
+}
+
+func TestAppendKeys(t *testing.T) {
+	e := newEditor([]byte("ab\n"))
+	e.key("a")
+	e.key("X")
+	if got := string(e.cur()); got != "aXb" {
+		t.Fatalf("a then X: %q, want aXb", got)
+	}
+	e.key("esc")
+	e.key("A")
+	e.key("!")
+	e.key("\r")
+	e.key("c")
+	if e.text() != "aXb!\nc\n" {
+		t.Fatalf("A ! Enter c: %q", e.text())
+	}
+}

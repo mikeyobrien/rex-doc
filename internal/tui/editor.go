@@ -528,6 +528,10 @@ func (e *editor) normalKey(k string) result {
 	case "j", "down":
 		e.moveRow(1)
 		setWant = false
+	case "\r":
+		// Enter in normal mode moves to the next line, as in vim.
+		e.moveRow(1)
+		e.firstNonBlank()
 	case "k", "up":
 		e.moveRow(-1)
 		setWant = false

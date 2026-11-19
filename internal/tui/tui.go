@@ -399,6 +399,13 @@ func nextKey(b []byte) (string, []byte) {
 		}
 		return "esc", b[1:]
 	}
+	// Enter can arrive as CR, LF or CR LF depending on the terminal.
+	if b[0] == '\r' || b[0] == '\n' {
+		if b[0] == '\r' && len(b) > 1 && b[1] == '\n' {
+			return "\r", b[2:]
+		}
+		return "\r", b[1:]
+	}
 	r := []rune(string(b))
 	return string(r[0]), b[len(string(r[0])):]
 }
