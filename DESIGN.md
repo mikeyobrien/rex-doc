@@ -4,7 +4,7 @@
 
 ## Goal
 
-**Made for Rex.** The best way to read Markdown in a terminal. It works in any terminal, but it's designed around Rex first: Rex's panes, floating windows, palette and chrome. Rex is free and easy to get, so leaning on it is a feature, not a limit.
+**Markdown, made for Rex.** Read and write Markdown as real text: fast, with links you can follow, at home in your terminal. It works in any terminal, but it's designed around Rex first: Rex's panes, floating windows, palette and chrome. Rex is free and easy to get, so leaning on it is a feature, not a limit.
 
 **Main use: reviewing what agents write**, at home and at work. An agent writes a plan or report, I open it, read it, and approve it. So it's built for:
 - **Opening fast.** The first screen shows immediately (goal: under 50 ms). Syntax highlighting and other slow work happen after that.

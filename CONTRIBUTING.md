@@ -6,7 +6,7 @@ Please read this page before sending a pull request. rdxt is deliberately **opin
 
 ## What rdxt is for
 
-rdxt is the best way to read Markdown in a terminal. Its main use is **reviewing what coding agents write**: you open a plan or report, read it, and approve it. So it opens fast and starts in View mode. It works in any terminal and looks best in [Rex](https://superlogical.com).
+rdxt is Markdown, made for Rex: real text in the terminal, fast, with links you can follow. Its main use is **reviewing what coding agents write**: you open a plan or report, read it, and approve it. So it opens fast and starts in View mode. It works in any terminal and looks best in [Rex](https://superlogical.com).
 
 ## The design principles, and why
 

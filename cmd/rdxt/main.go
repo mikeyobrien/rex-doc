@@ -1,4 +1,4 @@
-// rdxt reads Markdown in a terminal. Made for Rex.
+// rdxt: Markdown, made for Rex.
 package main
 
 import (
@@ -22,7 +22,7 @@ import (
 
 var version = "dev"
 
-const usage = `rdxt reads Markdown in a terminal. Made for Rex.
+const usage = `rdxt: Markdown, made for Rex.
 
 Usage:
   rdxt FILE                  open FILE here
