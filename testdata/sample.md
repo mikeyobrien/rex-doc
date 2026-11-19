@@ -31,8 +31,17 @@ This paragraph has **bold**, *italic*, ***both***, ~~strikethrough~~, `inline co
 > [!NOTE]
 > Useful information that users should know.
 
+> [!TIP]
+> Helpful advice for doing things better.
+
+> [!IMPORTANT]
+> Key information users need to know.
+
 > [!WARNING]
 > Critical content demanding immediate user attention.
+
+> [!CAUTION]
+> Negative potential consequences of an action.
 
 ## Code
 

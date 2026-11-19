@@ -250,11 +250,11 @@ var alertKinds = map[string]struct {
 	icon  string
 	color Color
 }{
-	"NOTE":      {"Note", "ⓘ", Blue},
-	"TIP":       {"Tip", "✦", Green},
-	"IMPORTANT": {"Important", "❖", Magenta},
+	"NOTE":      {"Note", "●", Blue},
+	"TIP":       {"Tip", "◆", Green},
+	"IMPORTANT": {"Important", "■", Magenta},
 	"WARNING":   {"Warning", "▲", Yellow},
-	"CAUTION":   {"Caution", "◆", Red},
+	"CAUTION":   {"Caution", "▼", Red},
 }
 
 func (l *layout) blockquote(n *ast.Blockquote, first, rest []Span) {
