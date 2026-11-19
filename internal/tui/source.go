@@ -77,6 +77,11 @@ func (v *viewer) saveFile() bool {
 func (v *viewer) sourceKey(k string) bool {
 	v.ed.half = max(v.rows()/2, 1)
 	r := v.ed.key(k)
+	if v.ed.scolded {
+		v.ed.scolded = false
+		v.setFlash(doc.RexMark + " Bad Rexy! One space is enough")
+		v.scold = true
+	}
 	// Unsaved means different from the file, so undoing back to it counts.
 	if v.ed.dirty && !v.ed.insert {
 		v.ed.dirty = v.ed.text() != string(v.src)

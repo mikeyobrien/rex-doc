@@ -65,7 +65,10 @@ View ──e──▶ Source (normal) ──i──▶ Source (insert: typing)
 - **Modeless option:** `rdxt config set editing modeless`. Source mode then opens ready for typing, `Ctrl-S` saves, and `Esc` goes straight back to View.
 - Switching modes keeps your place, using the source positions from the parser.
 - Unsaved changes show as a ● on the mode pill (View ●, Source ●, Insert ●) and in the status line. Going back to View renders the buffer you're editing, not the file on disk, so you can check an edit before saving. Undoing back to the saved text counts as clean.
-- **Lists continue themselves:** Enter on a list item starts the next one (`- `, `1.` → `2.`, `- [ ]`, `> `); Enter on an empty item ends the list.
+- **Lists continue themselves:** Enter on a list item starts the next one (`- `, `1.` → `2.`, `- [ ]`, `> `). Enter on an empty item, bulleted or numbered, ends the list, and Backspace right after a marker removes the whole marker.
+- **Shift+Enter is Enter.** It makes a new line, whichever way the terminal encodes it.
+- **No double spaces between words.** A second space after a word isn't typed, and the status line says **🦖 Bad Rexy! One space is enough** in red, to help train the habit away. Indentation and fenced code blocks are left alone. (So trailing double spaces can't make a hard line break. Use a backslash at the end of the line.)
+- **Arrow keys work everywhere**, and the cursor can sit after the last character of a line. Shift+↑/↓ move half a page.
 - Long lines soft-wrap; line numbers are dim, the current one bold. The cursor is a block in normal mode and a bar while typing. A tap places the cursor.
 - If the file changes on disk while you have unsaved edits, rdxt keeps your edits and says so; `:w` overwrites the file.
 - `q` won't quit with unsaved edits. Use `:w`, or `:q!` to discard.

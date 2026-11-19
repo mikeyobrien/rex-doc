@@ -149,3 +149,45 @@ func TestSourceCursorLinesUpWithText(t *testing.T) {
 		t.Fatalf("cursor column %d is on %q, want 'H' in %q", col, string(plain[min(col, len(plain)-1)]), plain)
 	}
 }
+
+func TestNumberedListEndsOnEmptyItem(t *testing.T) {
+	e := newEditor([]byte("1. one\n"))
+	e.insert = true
+	e.col = len(e.cur())
+	e.newline()
+	if got := string(e.cur()); got != "2. " {
+		t.Fatalf("after Enter: %q, want \"2. \"", got)
+	}
+	e.newline()
+	if got := string(e.cur()); got != "" {
+		t.Fatalf("Enter on an empty numbered item: %q, want an empty line", got)
+	}
+}
+
+func TestDoubleSpaceIsRefused(t *testing.T) {
+	e := newEditor([]byte("```\n\n```\n"))
+	e.insert = true
+	e.row = 3 - 2 // inside the code block
+	for _, k := range []string{"a", " ", " ", "b"} {
+		e.key(k)
+	}
+	if got := string(e.cur()); got != "a  b" {
+		t.Fatalf("in a code block: %q, want double spaces kept", got)
+	}
+	e = newEditor([]byte("\n"))
+	e.insert = true
+	for _, k := range []string{" ", " ", "a", " ", " ", "b"} {
+		e.key(k)
+	}
+	if got := string(e.cur()); got != "  a b" || !e.scolded {
+		t.Fatalf("in prose: %q (scolded %v), want \"  a b\" with indentation kept", got, e.scolded)
+	}
+}
+
+func TestShiftEnterIsEnter(t *testing.T) {
+	for _, in := range []string{"\x1b\r", "\x1b[13;2u", "\x1b[27;2;13~"} {
+		if k, _ := nextKey([]byte(in)); k != "\r" {
+			t.Errorf("nextKey(%q) = %q, want Enter", in, k)
+		}
+	}
+}

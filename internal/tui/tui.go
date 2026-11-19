@@ -49,6 +49,8 @@ type viewer struct {
 	flash    string
 	flashT   time.Time
 	flashFor time.Duration
+	// scold shows the flash in red (Bad Rexy).
+	scold bool
 	// pending holds a key that starts a two-key command, like "g" in "gg".
 	pending string
 	// showFM shows the frontmatter card (toggled with m).
@@ -261,7 +263,9 @@ func (v *viewer) checkReload() {
 	}
 }
 
-func (v *viewer) setFlash(s string) { v.flash, v.flashT, v.flashFor = s, time.Now(), 0 }
+func (v *viewer) setFlash(s string) {
+	v.flash, v.flashT, v.flashFor, v.scold = s, time.Now(), 0, false
+}
 
 // rows is the number of document rows: the screen less the status line and
 // the blank line above it.
@@ -374,6 +378,8 @@ var seqs = map[string]string{
 	"\x1b[A": "up", "\x1b[B": "down", "\x1bOA": "up", "\x1bOB": "down",
 	"\x1b[C": "right", "\x1b[D": "left", "\x1bOC": "right", "\x1bOD": "left", "\x1b[3~": "delete",
 	"\x1b[1;2A": "shift-up", "\x1b[1;2B": "shift-down",
+	// Shift+Enter, however the terminal sends it, is Enter.
+	"\x1b\r": "\r", "\x1b[13;2u": "\r", "\x1b[27;2;13~": "\r", "\x1b\n": "\r",
 	"\x1b[5~": "pgup", "\x1b[6~": "pgdn", "\x1b[Z": "shift-tab",
 	"\x1b[H": "home", "\x1b[F": "end", "\x1b[1~": "home", "\x1b[4~": "end", "\x1bOH": "home", "\x1bOF": "end",
 }
@@ -1113,5 +1119,9 @@ func (v *viewer) status() string {
 	}
 	left = runewidth.Truncate(left, max(room, 0), "…")
 	gap := v.width - margin*2 - runewidth.StringWidth(left) - runewidth.StringWidth(right)
+	if v.scold && v.flash != "" {
+		// Bad Rexy is said in red, so it's noticed.
+		return "\x1b[90m" + strings.Repeat(" ", margin) + left + strings.Repeat(" ", max(gap, 1)) + "\x1b[0m\x1b[1;31m" + right + "\x1b[0m"
+	}
 	return "\x1b[90m" + strings.Repeat(" ", margin) + left + strings.Repeat(" ", max(gap, 1)) + right + "\x1b[0m"
 }

@@ -32,6 +32,8 @@ type editor struct {
 	dirty bool
 	// half is half a screen of lines, set by the viewer, for Shift+↑/↓.
 	half int
+	// scolded is set when a double space was refused, for the viewer to say so.
+	scolded bool
 }
 
 type snapshot struct {
@@ -271,7 +273,7 @@ func (e *editor) newline() {
 	l := e.cur()
 	before, after := append([]rune(nil), l[:e.col]...), append([]rune(nil), l[e.col:]...)
 	cont := listContinuation(string(before))
-	if cont != "" && strings.TrimSpace(string(before)) == strings.TrimSpace(cont) {
+	if cont != "" && emptyItem(string(before)) && len(after) == 0 {
 		// An empty list item: end the list instead of continuing it.
 		e.lines[e.row] = []rune{}
 		e.col = 0
@@ -313,6 +315,32 @@ func listContinuation(line string) string {
 	return ""
 }
 
+// listMarker returns line's own list marker with its indent ("  - ",
+// "3. ", "- [x] ", "> "), or "" when it isn't a list item.
+func listMarker(line string) string {
+	indent := line[:len(line)-len(strings.TrimLeft(line, " \t"))]
+	rest := line[len(indent):]
+	for _, m := range []string{"- [ ] ", "- [x] ", "- [X] ", "* [ ] ", "- ", "* ", "+ ", "> "} {
+		if strings.HasPrefix(rest, m) || rest+" " == m {
+			return indent + m
+		}
+	}
+	n := 0
+	for n < len(rest) && rest[n] >= '0' && rest[n] <= '9' {
+		n++
+	}
+	if n > 0 && n < len(rest) && (rest[n] == '.' || rest[n] == ')') && (n+1 == len(rest) || rest[n+1] == ' ') {
+		return indent + rest[:n+1] + " "
+	}
+	return ""
+}
+
+// emptyItem reports whether line is only a list marker, with nothing after.
+func emptyItem(line string) bool {
+	m := listMarker(line)
+	return m != "" && strings.TrimSpace(line) == strings.TrimSpace(m)
+}
+
 func itoa(n int) string {
 	if n == 0 {
 		return "0"
@@ -330,7 +358,7 @@ func (e *editor) backspace() {
 	// removes the whole marker, so a new line can become anything.
 	if e.col > 0 && e.col == len(e.cur()) {
 		before := string(e.cur())
-		if m := listContinuation(before); m != "" && strings.TrimSpace(m) == strings.TrimSpace(before) && strings.HasSuffix(before, " ") {
+		if emptyItem(before) && strings.HasSuffix(before, " ") {
 			indent := len([]rune(before)) - len([]rune(strings.TrimLeft(before, " \t")))
 			e.lines[e.row] = append([]rune(nil), e.cur()[:indent]...)
 			e.col = indent
@@ -492,9 +520,38 @@ func (e *editor) insertKey(k string) {
 		e.col = len(e.cur())
 	default:
 		if r := []rune(k); len(r) == 1 && (r[0] >= 0x20 && r[0] != 0x7f) {
+			if r[0] == ' ' && e.doubleSpace() {
+				e.scolded = true
+				return
+			}
 			e.insertRunes(r)
 		}
 	}
+}
+
+// doubleSpace reports whether a space typed now would be a second space
+// between words. Indentation and code blocks are left alone.
+func (e *editor) doubleSpace() bool {
+	l := e.cur()
+	if e.col < 2 || l[e.col-1] != ' ' || l[e.col-2] == ' ' || l[e.col-2] == '\t' {
+		return false
+	}
+	if e.col < len(l) && l[e.col] == ' ' {
+		return false
+	}
+	return !e.inCodeBlock()
+}
+
+// inCodeBlock reports whether the cursor line is inside a fenced code block.
+func (e *editor) inCodeBlock() bool {
+	in := false
+	for i := 0; i < e.row; i++ {
+		t := strings.TrimSpace(string(e.lines[i]))
+		if strings.HasPrefix(t, "```") || strings.HasPrefix(t, "~~~") {
+			in = !in
+		}
+	}
+	return in
 }
 
 func (e *editor) normalKey(k string) result {
