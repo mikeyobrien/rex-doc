@@ -277,8 +277,9 @@ func (v *viewer) mouse(btn, x, y int, press bool) {
 	top := v.topH()
 	if btn&^(4|8|16) == 0 && !press && y < top {
 		if v.state == reading || v.state == helping || v.state == outlining {
+			was := v.state
 			v.state = reading
-			v.barClick(x)
+			v.barClick(x, was)
 		}
 		return
 	}

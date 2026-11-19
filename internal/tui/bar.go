@@ -229,8 +229,9 @@ func visibleWidth(s string) int {
 	return runewidth.StringWidth(b.String())
 }
 
-// barClick runs what's under column x of the top bar.
-func (v *viewer) barClick(x int) {
+// barClick runs what's under column x of the top bar. was is the state
+// before the click, so a second click on Outline or ? closes what it opened.
+func (v *viewer) barClick(x int, was state) {
 	for _, h := range v.hits {
 		if x >= h.x0 && x < h.x1 {
 			switch h.action {
@@ -239,11 +240,15 @@ func (v *viewer) barClick(x int) {
 			case "forward":
 				v.goForward()
 			case "outline":
-				v.openOutline()
+				if was != outlining {
+					v.openOutline()
+				}
 			case "search":
 				v.state, v.typing = searching, ""
 			case "help":
-				v.state = helping
+				if was != helping {
+					v.state = helping
+				}
 			case "close":
 				v.quit = true
 			case "crumb":
