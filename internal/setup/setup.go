@@ -154,6 +154,9 @@ func Install(version string) error {
 	if err := saveState(s); err != nil {
 		return err
 	}
+	if tip := ezaTip(); tip != "" {
+		fmt.Println("\n  \x1b[1mTip:\x1b[0m " + tip)
+	}
 	fmt.Println()
 	fmt.Println("Done. Cmd-click a .md file in Rex, or open the palette and type rdxt.")
 	fmt.Println("\x1b[90mrdxt setup --undo puts everything back.\x1b[0m")
@@ -406,6 +409,20 @@ func installZsh(s *state) error {
 	}
 	s.Zshrc = rc
 	return nil
+}
+
+// ezaTip suggests --hyperlink when ls is eza without it: then every name
+// in a listing is a file link, and Cmd-click opens documents in rdxt.
+func ezaTip() string {
+	out, err := exec.Command("zsh", "-ic", "alias ls").Output()
+	if err != nil {
+		return ""
+	}
+	a := string(out)
+	if strings.Contains(a, "eza") && !strings.Contains(a, "--hyperlink") {
+		return "add --hyperlink to your eza aliases (ls, ll, la) so every file name is clickable."
+	}
+	return ""
 }
 
 // zdotdir is the folder zsh reads .zshrc from: $ZDOTDIR as zsh sets it
