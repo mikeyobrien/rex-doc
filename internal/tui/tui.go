@@ -373,6 +373,7 @@ func (v *viewer) mouse(btn, x, y int, press bool) {
 var seqs = map[string]string{
 	"\x1b[A": "up", "\x1b[B": "down", "\x1bOA": "up", "\x1bOB": "down",
 	"\x1b[C": "right", "\x1b[D": "left", "\x1bOC": "right", "\x1bOD": "left", "\x1b[3~": "delete",
+	"\x1b[1;2A": "shift-up", "\x1b[1;2B": "shift-down",
 	"\x1b[5~": "pgup", "\x1b[6~": "pgdn", "\x1b[Z": "shift-tab",
 	"\x1b[H": "home", "\x1b[F": "end", "\x1b[1~": "home", "\x1b[4~": "end", "\x1bOH": "home", "\x1bOF": "end",
 }
@@ -455,9 +456,9 @@ func (v *viewer) key(k string) bool {
 		v.scroll(1)
 	case "k", "up", "\x19":
 		v.scroll(-1)
-	case "\x04":
+	case "\x04", "shift-down":
 		v.scroll(half)
-	case "\x15":
+	case "\x15", "shift-up":
 		v.scroll(-half)
 	case " ", "pgdn", "\x06":
 		v.scroll(page)

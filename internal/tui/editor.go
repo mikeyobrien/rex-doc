@@ -30,6 +30,8 @@ type editor struct {
 	linewise bool
 
 	dirty bool
+	// half is half a screen of lines, set by the viewer, for Shift+↑/↓.
+	half int
 }
 
 type snapshot struct {
@@ -94,11 +96,9 @@ func (e *editor) cur() []rune { return e.lines[e.row] }
 
 func (e *editor) clampCursor() {
 	e.row = min(max(e.row, 0), len(e.lines)-1)
-	n := len(e.cur())
-	if !e.insert && n > 0 {
-		n--
-	}
-	e.col = min(max(e.col, 0), n)
+	// The cursor may sit after the last character in both modes, so arrow
+	// keys and taps can reach the end of a line.
+	e.col = min(max(e.col, 0), len(e.cur()))
 }
 
 func (e *editor) save() {
@@ -326,6 +326,18 @@ func itoa(n int) string {
 }
 
 func (e *editor) backspace() {
+	// Right after a list marker ("- ", "1. ", "- [ ] ", "> "), Backspace
+	// removes the whole marker, so a new line can become anything.
+	if e.col > 0 && e.col == len(e.cur()) {
+		before := string(e.cur())
+		if m := listContinuation(before); m != "" && strings.TrimSpace(m) == strings.TrimSpace(before) && strings.HasSuffix(before, " ") {
+			indent := len([]rune(before)) - len([]rune(strings.TrimLeft(before, " \t")))
+			e.lines[e.row] = append([]rune(nil), e.cur()[:indent]...)
+			e.col = indent
+			e.dirty = true
+			return
+		}
+	}
 	if e.col > 0 {
 		l := e.cur()
 		e.lines[e.row] = append(append([]rune(nil), l[:e.col-1]...), l[e.col:]...)
@@ -346,7 +358,7 @@ func (e *editor) backspace() {
 
 func (e *editor) deleteChar() {
 	l := e.cur()
-	if len(l) == 0 {
+	if e.col >= len(l) {
 		return
 	}
 	e.reg, e.linewise = [][]rune{{l[e.col]}}, false
@@ -451,9 +463,6 @@ func (e *editor) insertKey(k string) {
 	switch k {
 	case "esc", "\x03":
 		e.insert = false
-		if e.col > 0 {
-			e.col--
-		}
 		e.clampCursor()
 	case "\r":
 		e.newline()
@@ -471,6 +480,12 @@ func (e *editor) insertKey(k string) {
 	case "down":
 		e.want = dispCol(e.cur(), e.col)
 		e.moveRow(1)
+	case "shift-up":
+		e.want = dispCol(e.cur(), e.col)
+		e.moveRow(-e.half)
+	case "shift-down":
+		e.want = dispCol(e.cur(), e.col)
+		e.moveRow(e.half)
 	case "home":
 		e.col = 0
 	case "end":
@@ -516,11 +531,11 @@ func (e *editor) normalKey(k string) result {
 	case "k", "up":
 		e.moveRow(-1)
 		setWant = false
-	case "\x04":
-		e.moveRow(10)
+	case "\x04", "shift-down":
+		e.moveRow(e.half)
 		setWant = false
-	case "\x15":
-		e.moveRow(-10)
+	case "\x15", "shift-up":
+		e.moveRow(-e.half)
 		setWant = false
 	case "w":
 		e.wordForward()

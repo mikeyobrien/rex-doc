@@ -75,6 +75,7 @@ func (v *viewer) saveFile() bool {
 
 // sourceKey handles a key in Source mode and reports whether to quit.
 func (v *viewer) sourceKey(k string) bool {
+	v.ed.half = max(v.rows()/2, 1)
 	r := v.ed.key(k)
 	// Unsaved means different from the file, so undoing back to it counts.
 	if v.ed.dirty && !v.ed.insert {

@@ -86,3 +86,22 @@ func TestCommands(t *testing.T) {
 		t.Fatalf(":q with changes returned %v, want notSaved", r)
 	}
 }
+
+func TestBackspaceRemovesAWholeMarker(t *testing.T) {
+	e := newEditor([]byte("- one\n"))
+	e.insert = true
+	e.col = len(e.cur())
+	e.newline() // "- "
+	e.backspace()
+	if got := string(e.cur()); got != "" {
+		t.Fatalf("after Backspace: %q, want an empty line", got)
+	}
+}
+
+func TestCursorCanReachTheEndOfALine(t *testing.T) {
+	e := newEditor([]byte("abc\n"))
+	e.key("$")
+	if e.col != 3 {
+		t.Fatalf("$: col %d, want 3 (after the last character)", e.col)
+	}
+}
