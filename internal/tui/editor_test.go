@@ -1,6 +1,10 @@
 package tui
 
-import "testing"
+import (
+	"regexp"
+	"strings"
+	"testing"
+)
 
 func TestListContinuation(t *testing.T) {
 	cases := map[string]string{
@@ -129,5 +133,19 @@ func TestAppendKeys(t *testing.T) {
 	e.key("c")
 	if e.text() != "aXb!\nc\n" {
 		t.Fatalf("A ! Enter c: %q", e.text())
+	}
+}
+
+func TestSourceCursorLinesUpWithText(t *testing.T) {
+	v := &viewer{width: 60, height: 20, path: "x.md", rich: true}
+	v.ed = newEditor([]byte("## Heading\n"))
+	v.ed.col = 3 // on the H
+	var b strings.Builder
+	_, col := v.drawSource(&b, 10, 0)
+	line := strings.Split(b.String(), "\r\n")[0]
+	plain := regexp.MustCompile(`\x1b\[[0-9;]*[A-Za-z]`).ReplaceAllString(line, "")
+	plain = strings.TrimPrefix(plain, "")
+	if col >= len(plain) || plain[col] != 'H' {
+		t.Fatalf("cursor column %d is on %q, want 'H' in %q", col, string(plain[min(col, len(plain)-1)]), plain)
 	}
 }

@@ -290,6 +290,10 @@ func wrapSpans(row int, spans []doc.Span, width int) []seg {
 
 func (v *viewer) gutterWidth() int { return len(strconv.Itoa(len(v.ed.lines))) + 2 }
 
+// textCol is the screen column where buffer text starts: one space, the
+// line number padded to gw-2, then two spaces.
+func textCol(gw int) int { return 1 + (gw - 2) + 2 }
+
 // drawSource draws the buffer and returns where the cursor goes (0-based
 // row and column on screen), or -1 when it's off screen.
 func (v *viewer) drawSource(b *strings.Builder, rows, top int) (int, int) {
@@ -332,7 +336,7 @@ func (v *viewer) drawSource(b *strings.Builder, rows, top int) (int, int) {
 			if crow < 0 {
 				return -1, -1
 			}
-			return top + crow, 1 + gw - 1 + ccol
+			return top + crow, textCol(gw) + ccol
 		}
 		e.top++
 	}
@@ -373,7 +377,7 @@ func (v *viewer) sourceClick(x, y int) {
 	s := segs[y]
 	col := s.start
 	w := 0
-	target := x - (1 + gw - 1)
+	target := x - textCol(gw)
 	for _, r := range []rune(spansText(s.spans)) {
 		rw := runewidth.RuneWidth(r)
 		if w+rw > target {
