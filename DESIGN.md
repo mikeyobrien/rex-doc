@@ -154,6 +154,7 @@ v1 shouldn't block any of this: keep the source positions and the reload path cl
 
 - **No settings while in development.** rdxt is 100% opinionated: one look, no themes. Themes may come later.
 - **Status line:** has one blank line of padding above it.
+- **Asking for stars:** the README has a star badge and a short ask. In the app, the ask appears in `--help` and `--version`, and once in the status line on the 10th launch, for 8 seconds. Never again after that.
 - **Task markers:** round brackets, `( )` and `(✔)`, with finished tasks dimmed. Other styles may be added later.
 
 - **Mode keys:** `e` goes from View to Source, and `Esc` goes back. Not `Tab`.

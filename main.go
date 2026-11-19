@@ -32,8 +32,14 @@ Options:
 Keys:
   j/k  ↓/↑           scroll a line           Space/b  PgDn/PgUp   scroll a page
   Ctrl-d/Ctrl-u      scroll half a page      gg/G  Home/End       top / end
-  }/{                next / previous heading r                    reload
-  q                  quit
+  }/{                next / previous heading o                    outline
+  Tab/Shift-Tab      select a link           Enter or click       follow it
+  f                  link hints              H / L                back / forward
+  /                  search                  n / N                next / previous match
+  m                  show frontmatter        r                    reload
+  Esc                clear selection         q                    quit
+
+★ Like rdxt? A star helps others find it: https://github.com/travelingflwr/rex-doc
 `
 
 func main() {
@@ -56,6 +62,7 @@ func main() {
 	}
 	if showVersion {
 		fmt.Println("rdxt", version)
+		fmt.Println("★ Like it? Star it: https://github.com/travelingflwr/rex-doc")
 		return
 	}
 	if fs.NArg() != 1 {
