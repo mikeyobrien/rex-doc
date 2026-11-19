@@ -135,7 +135,11 @@ Outside Rex, everything except the split and tab commands works the same.
 1. **View mode:** parsing, layout, colors, width breakpoints, scrolling
 2. **Navigation:** links, history, anchors, outline, search, link hints
 3. **Source mode:** the vim-like editor, saving, keeping your place across modes, live reload, `E` to Neovim
-4. **Rex extras:** `open`, splits and tabs, the agent guide, the OSC 66 check
+4. **Rex integration**, installed with `rdxt setup`:
+   - **Floating windows:** `rdxt open --float FILE` opens rdxt in a floating layer (`session.new_layer`), which closes when you quit.
+   - **Cmd-click to open:** a small handler registered as the default app for `.md` and `.dok` opens Cmd-clicked paths in a floating rdxt. This also works for agents' `file://` links. Paths on remote hosts open with rdxt on that host.
+   - **Rex's own UI for navigation:** a Lua file defines actions that use `rex.ui.pick` and `rex.ui.input`. rdxt calls them with `rex do`, so the outline, a link picker, search, a file picker and confirmations use Rex's native palette, which is touch-friendly on iPad. Without the actions (or outside Rex), rdxt uses its own versions.
+   - A palette action, "rdxt: Open in floating window", plus `open`, splits and tabs, the agent guide, and the OSC 66 check.
 5. **Packaging:** builds for each platform, installing on Linux hosts
 
 **v2 ideas:** Mermaid and sequence diagrams drawn as text (with `mmdc` as a fallback), CSV and JSON views, piping into `rdxt` through stdin, streaming.
