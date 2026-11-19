@@ -1,0 +1,561 @@
+package doc
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+	"unicode"
+
+	meta "github.com/yuin/goldmark-meta"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	east "github.com/yuin/goldmark/extension/ast"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/text"
+	"gopkg.in/yaml.v2"
+)
+
+// Layout widths.
+const (
+	// ReadingWidth is the widest the text gets, for comfortable reading.
+	ReadingWidth = 88
+	// CompactBelow is the terminal width under which the compact layout is used.
+	CompactBelow = 60
+)
+
+var md = goldmark.New(
+	goldmark.WithExtensions(extension.GFM, extension.Footnote, meta.Meta),
+	goldmark.WithParserOptions(parser.WithAttribute()),
+)
+
+// Render parses Markdown and lays it out for a terminal termWidth cells wide.
+func Render(src []byte, termWidth int) *Doc {
+	if termWidth < 10 {
+		termWidth = 10
+	}
+	d := &Doc{}
+	if termWidth < CompactBelow {
+		d.Margin = 1
+		d.Width = termWidth - 2
+	} else {
+		d.Width = min(termWidth-4, ReadingWidth)
+		d.Margin = (termWidth - d.Width) / 2
+	}
+	ctx := parser.NewContext()
+	root := md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
+	l := &layout{src: src, width: d.Width, doc: d, slugs: map[string]int{}}
+	if items, err := meta.TryGetItems(ctx); err == nil && len(items) > 0 {
+		l.frontmatter(items)
+	}
+	l.blocks(root, nil, nil, false)
+	// Drop trailing blank lines.
+	for len(d.Lines) > 0 && isBlank(d.Lines[len(d.Lines)-1]) {
+		d.Lines = d.Lines[:len(d.Lines)-1]
+	}
+	return d
+}
+
+type layout struct {
+	src       []byte
+	width     int
+	doc       *Doc
+	listDepth int
+	slugs     map[string]int
+}
+
+func isBlank(l Line) bool {
+	for _, s := range l.Spans {
+		if strings.TrimSpace(s.Text) != "" {
+			return false
+		}
+	}
+	return true
+}
+
+func (l *layout) emit(lines ...Line) { l.doc.Lines = append(l.doc.Lines, lines...) }
+
+// blank adds an empty line that keeps the prefix's bars (for quotes), without
+// its bullets or trailing spaces.
+func (l *layout) blank(prefix []Span) {
+	var spans []Span
+	for _, s := range prefix {
+		t := strings.TrimRight(s.Text, " ")
+		if t != "" {
+			spans = append(spans, Span{Text: t, Style: s.Style, Src: -1})
+		}
+	}
+	l.emit(Line{Spans: spans, Src: -1})
+}
+
+func (l *layout) lastBlank() bool {
+	n := len(l.doc.Lines)
+	return n == 0 || isBlank(l.doc.Lines[n-1])
+}
+
+// blocks lays out the children of parent. first is the prefix for the first
+// line of the first child and rest the prefix for every other line. tight
+// lists have no blank lines between their children.
+func (l *layout) blocks(parent ast.Node, first, rest []Span, tight bool) {
+	i := 0
+	for c := parent.FirstChild(); c != nil; c = c.NextSibling() {
+		p := rest
+		if i == 0 {
+			p = first
+		}
+		if i > 0 && !tight {
+			l.blank(rest)
+			if h, ok := c.(*ast.Heading); ok && h.Level <= 2 && l.listDepth == 0 {
+				l.blank(rest)
+			}
+		}
+		l.block(c, p, rest)
+		i++
+	}
+}
+
+// srcOf returns the source offset where n starts.
+func (l *layout) srcOf(n ast.Node) int {
+	if n.Type() == ast.TypeBlock {
+		if lines := n.Lines(); lines != nil && lines.Len() > 0 {
+			return lines.At(0).Start
+		}
+	}
+	if t, ok := n.(*ast.Text); ok {
+		return t.Segment.Start
+	}
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		if s := l.srcOf(c); s >= 0 {
+			return s
+		}
+	}
+	return -1
+}
+
+func spaces(n int) string { return strings.Repeat(" ", max(n, 0)) }
+
+func (l *layout) avail(prefix []Span) int { return max(l.width-spansWidth(prefix), 8) }
+
+func (l *layout) block(n ast.Node, first, rest []Span) {
+	switch n := n.(type) {
+	case *ast.Heading:
+		l.heading(n, first, rest)
+	case *ast.Paragraph, *ast.TextBlock:
+		spans := l.inlines(n, Plain, -1)
+		l.emit(wrap(spans, l.width, first, rest, l.srcOf(n))...)
+	case *ast.Blockquote:
+		l.blockquote(n, first, rest)
+	case *ast.List:
+		l.list(n, first, rest)
+	case *ast.FencedCodeBlock:
+		lang := ""
+		if n.Info != nil {
+			lang = strings.Fields(string(n.Info.Segment.Value(l.src)) + " ")[0]
+		}
+		l.code(n, lang, first, rest)
+	case *ast.CodeBlock:
+		l.code(n, "", first, rest)
+	case *ast.ThematicBreak:
+		rule := strings.Repeat("─", l.avail(rest))
+		l.emit(Line{Spans: append(clone(first), Span{Text: rule, Style: Plain.With(BrightBlack), Src: -1}), Src: -1})
+	case *ast.HTMLBlock:
+		var b strings.Builder
+		for i := 0; i < n.Lines().Len(); i++ {
+			seg := n.Lines().At(i)
+			b.Write(seg.Value(l.src))
+		}
+		if n.HasClosure() {
+			b.Write(n.ClosureLine.Value(l.src))
+		}
+		st := Plain
+		st.Dim = true
+		p := first
+		src := l.srcOf(n)
+		for _, line := range strings.Split(strings.TrimRight(b.String(), "\n"), "\n") {
+			l.emit(Line{Spans: append(clone(p), Span{Text: truncate(line, l.avail(p)), Style: st, Src: src}), Src: src})
+			p = rest
+		}
+	case *east.Table:
+		l.table(n, first, rest)
+	case *east.FootnoteList:
+		l.footnotes(n, first, rest)
+	default:
+		if n.HasChildren() {
+			l.blocks(n, first, rest, false)
+		}
+	}
+}
+
+func clone(s []Span) []Span { return append([]Span(nil), s...) }
+
+var headingStyles = [7]Style{
+	1: {FG: Magenta, BG: Default, Bold: true, Link: -1},
+	2: {FG: Blue, BG: Default, Bold: true, Link: -1},
+	3: {FG: Cyan, BG: Default, Bold: true, Link: -1},
+	4: {FG: Default, BG: Default, Bold: true, Link: -1},
+	5: {FG: Default, BG: Default, Bold: true, Dim: true, Link: -1},
+	6: {FG: Default, BG: Default, Italic: true, Dim: true, Link: -1},
+}
+
+func (l *layout) heading(n *ast.Heading, first, rest []Span) {
+	st := headingStyles[min(max(n.Level, 1), 6)]
+	spans := l.inlines(n, st, -1)
+	src := l.srcOf(n)
+	lines := wrap(spans, l.width, first, rest, src)
+	plain := plainText(spans)
+	l.doc.Headings = append(l.doc.Headings, Heading{Level: n.Level, Text: plain, Slug: l.slug(plain), Line: len(l.doc.Lines)})
+	for i := range lines {
+		lines[i].Heading = n.Level
+	}
+	l.emit(lines...)
+	switch n.Level {
+	case 1:
+		l.emit(Line{Spans: append(clone(rest), Span{Text: strings.Repeat("━", l.avail(rest)), Style: Plain.With(Magenta), Src: -1}), Src: -1})
+	case 2:
+		l.emit(Line{Spans: append(clone(rest), Span{Text: strings.Repeat("─", l.avail(rest)), Style: Plain.With(BrightBlack), Src: -1}), Src: -1})
+	}
+}
+
+func plainText(spans []Span) string {
+	var b strings.Builder
+	for _, s := range spans {
+		b.WriteString(s.Text)
+	}
+	return strings.TrimSpace(b.String())
+}
+
+// slug makes a GitHub-style anchor for a heading.
+func (l *layout) slug(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		switch {
+		case unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '_':
+			b.WriteRune(r)
+		case r == ' ':
+			b.WriteRune('-')
+		}
+	}
+	slug := b.String()
+	if n, ok := l.slugs[slug]; ok {
+		l.slugs[slug] = n + 1
+		return fmt.Sprintf("%s-%d", slug, n+1)
+	}
+	l.slugs[slug] = 0
+	return slug
+}
+
+// Alerts, as GitHub writes them: > [!NOTE]
+var alertKinds = map[string]struct {
+	title string
+	icon  string
+	color Color
+}{
+	"NOTE":      {"Note", "ⓘ", Blue},
+	"TIP":       {"Tip", "✦", Green},
+	"IMPORTANT": {"Important", "❖", Magenta},
+	"WARNING":   {"Warning", "▲", Yellow},
+	"CAUTION":   {"Caution", "◆", Red},
+}
+
+func (l *layout) blockquote(n *ast.Blockquote, first, rest []Span) {
+	barStyle := Plain.With(BrightBlack)
+	// Is it an alert? The first line of the first paragraph is [!KIND].
+	if p, ok := n.FirstChild().(*ast.Paragraph); ok && p.Lines().Len() > 0 {
+		seg := p.Lines().At(0)
+		marker := strings.TrimSpace(string(seg.Value(l.src)))
+		if strings.HasPrefix(marker, "[!") && strings.HasSuffix(marker, "]") {
+			if kind, ok := alertKinds[strings.ToUpper(marker[2:len(marker)-1])]; ok {
+				bar := Span{Text: "▎ ", Style: Plain.With(kind.color), Src: -1}
+				f := append(clone(first), bar)
+				r := append(clone(rest), bar)
+				title := Style{FG: kind.color, BG: Default, Bold: true, Link: -1}
+				l.emit(Line{Spans: append(f, Span{Text: kind.icon + " " + kind.title, Style: title, Src: seg.Start}), Src: seg.Start})
+				// The rest of the first paragraph, then the other children.
+				if spans := l.inlines(p, Plain, seg.Stop); len(spans) > 0 && plainText(spans) != "" {
+					l.emit(wrap(spans, l.width, r, r, l.srcOf(p))...)
+				}
+				for c := p.NextSibling(); c != nil; c = c.NextSibling() {
+					l.blank(r)
+					l.block(c, r, r)
+				}
+				return
+			}
+		}
+	}
+	bar := Span{Text: "▎ ", Style: barStyle, Src: -1}
+	l.blocks(n, append(clone(first), bar), append(clone(rest), bar), false)
+}
+
+var bullets = []string{"•", "◦", "▪"}
+
+func (l *layout) list(n *ast.List, first, rest []Span) {
+	l.listDepth++
+	defer func() { l.listDepth-- }()
+	num := n.Start
+	if num == 0 {
+		num = 1
+	}
+	// Ordered markers are right-aligned to the widest number.
+	count := n.ChildCount()
+	numW := len(fmt.Sprint(num + count - 1))
+	i := 0
+	for item := n.FirstChild(); item != nil; item = item.NextSibling() {
+		p := rest
+		if i == 0 {
+			p = first
+		}
+		if i > 0 && !n.IsTight {
+			l.blank(rest)
+		}
+		var marker Span
+		switch {
+		case taskBox(item) != nil:
+			if taskBox(item).IsChecked {
+				marker = Span{Text: "☑", Style: Plain.With(Green), Src: -1}
+			} else {
+				marker = Span{Text: "☐", Style: Plain.With(BrightBlack), Src: -1}
+			}
+		case n.IsOrdered():
+			marker = Span{Text: fmt.Sprintf("%*d.", numW, num), Style: Plain.With(BrightBlack), Src: -1}
+			num++
+		default:
+			marker = Span{Text: bullets[(l.listDepth-1)%len(bullets)], Style: Plain.With(BrightBlack), Src: -1}
+		}
+		mw := textWidth(marker.Text) + 1
+		f := append(clone(p), marker, Span{Text: " ", Style: Plain, Src: -1})
+		r := append(clone(rest), Span{Text: spaces(mw), Style: Plain, Src: -1})
+		l.blocks(item, f, r, n.IsTight)
+		i++
+	}
+}
+
+// taskBox returns the task-list checkbox at the start of a list item, if any.
+func taskBox(item ast.Node) *east.TaskCheckBox {
+	c := item.FirstChild()
+	if c == nil {
+		return nil
+	}
+	if b, ok := c.FirstChild().(*east.TaskCheckBox); ok {
+		return b
+	}
+	return nil
+}
+
+func (l *layout) code(n ast.Node, lang string, first, rest []Span) {
+	var b bytes.Buffer
+	lines := n.Lines()
+	for i := 0; i < lines.Len(); i++ {
+		seg := lines.At(i)
+		b.Write(seg.Value(l.src))
+	}
+	src := strings.TrimRight(strings.ReplaceAll(b.String(), "\t", "    "), "\n")
+	start := l.srcOf(n)
+	gutter := Span{Text: "│ ", Style: Plain.With(BrightBlack), Src: -1}
+	if lang != "" {
+		label := Style{FG: BrightBlack, BG: Default, Italic: true, Link: -1}
+		l.emit(Line{Spans: append(clone(first), Span{Text: lang, Style: label, Src: -1}), Src: start})
+		first = rest
+	}
+	avail := l.avail(append(clone(rest), gutter))
+	for i, toks := range highlight(src, lang) {
+		lineSrc := -1
+		if i < lines.Len() {
+			lineSrc = lines.At(i).Start
+		}
+		p := first
+		if i > 0 {
+			p = rest
+		}
+		spans := append(clone(p), gutter)
+		w := 0
+		for _, t := range toks {
+			tw := textWidth(t.Text)
+			if w+tw > avail {
+				t.Text = runewidthTruncate(t.Text, avail-w)
+				spans = append(spans, Span{Text: t.Text, Style: t.Style, Src: lineSrc}, Span{Text: "…", Style: Plain.With(BrightBlack), Src: -1})
+				break
+			}
+			spans = append(spans, Span{Text: t.Text, Style: t.Style, Src: lineSrc})
+			w += tw
+		}
+		l.emit(Line{Spans: spans, Src: lineSrc})
+	}
+}
+
+func (l *layout) frontmatter(items yaml.MapSlice) {
+	key := Style{FG: BrightBlack, BG: Default, Link: -1}
+	val := Style{FG: Default, BG: Default, Dim: true, Link: -1}
+	gutter := Span{Text: "│ ", Style: Plain.With(BrightBlack), Src: -1}
+	for _, it := range items {
+		k := fmt.Sprint(it.Key)
+		v := strings.TrimSpace(strings.ReplaceAll(fmt.Sprint(it.Value), "\n", " "))
+		spans := []Span{{Text: k + ": ", Style: key, Src: 0}, {Text: v, Style: val, Src: 0}}
+		l.emit(wrap(spans, l.width, []Span{gutter}, []Span{gutter, {Text: spaces(textWidth(k) + 2), Style: Plain, Src: -1}}, 0)...)
+	}
+	l.emit(Line{Src: -1})
+}
+
+func (l *layout) footnotes(n *east.FootnoteList, first, rest []Span) {
+	rule := Span{Text: strings.Repeat("─", min(16, l.avail(rest))), Style: Plain.With(BrightBlack), Src: -1}
+	l.emit(Line{Spans: append(clone(first), rule), Src: -1})
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		fn, ok := c.(*east.Footnote)
+		if !ok {
+			continue
+		}
+		mark := Span{Text: superscript(fn.Index) + " ", Style: Plain.With(Blue), Src: -1}
+		r := append(clone(rest), Span{Text: spaces(textWidth(mark.Text)), Style: Plain, Src: -1})
+		l.blocks(fn, append(clone(rest), mark), r, true)
+	}
+}
+
+func superscript(n int) string {
+	const digits = "⁰¹²³⁴⁵⁶⁷⁸⁹"
+	sup := []rune(digits)
+	var b strings.Builder
+	for _, d := range fmt.Sprint(n) {
+		b.WriteRune(sup[d-'0'])
+	}
+	return b.String()
+}
+
+// inlines collects the styled text of n's inline children. Text before source
+// offset skip is left out (used to drop an alert's [!KIND] marker).
+func (l *layout) inlines(n ast.Node, st Style, skip int) []Span {
+	var out []Span
+	l.inline(n, st, skip, &out)
+	// Trim a leading space left behind by a skipped first line.
+	for len(out) > 0 && strings.TrimSpace(out[0].Text) == "" {
+		out = out[1:]
+	}
+	return out
+}
+
+func (l *layout) inline(n ast.Node, st Style, skip int, out *[]Span) {
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		switch c := c.(type) {
+		case *ast.Text:
+			seg := c.Segment
+			if seg.Stop <= skip {
+				continue
+			}
+			l.text(string(seg.Value(l.src)), st, seg.Start, out)
+			if c.HardLineBreak() {
+				*out = append(*out, Span{Text: "\n", Style: st, Src: -1})
+			} else if c.SoftLineBreak() {
+				*out = append(*out, Span{Text: " ", Style: st, Src: -1})
+			}
+		case *ast.String:
+			*out = append(*out, Span{Text: string(c.Value), Style: st, Src: -1})
+		case *ast.CodeSpan:
+			var b strings.Builder
+			src := -1
+			for t := c.FirstChild(); t != nil; t = t.NextSibling() {
+				if tx, ok := t.(*ast.Text); ok {
+					if src < 0 {
+						src = tx.Segment.Start
+					}
+					b.Write(tx.Segment.Value(l.src))
+					if tx.SoftLineBreak() {
+						b.WriteByte(' ')
+					}
+				} else if s, ok := t.(*ast.String); ok {
+					b.Write(s.Value)
+				}
+			}
+			cs := st
+			cs.FG = Cyan
+			cs.Bold = false
+			// Code keeps its spaces: use no-break spaces so it isn't wrapped mid-span.
+			*out = append(*out, Span{Text: strings.ReplaceAll(b.String(), " ", " "), Style: cs, Src: src})
+		case *ast.Emphasis:
+			es := st
+			if c.Level >= 2 {
+				es.Bold = true
+			} else {
+				es.Italic = true
+			}
+			l.inline(c, es, skip, out)
+		case *east.Strikethrough:
+			ss := st
+			ss.Strike = true
+			ss.Dim = true
+			l.inline(c, ss, skip, out)
+		case *ast.Link:
+			ls := st
+			ls.Link = l.addLink(string(c.Destination), string(c.Title))
+			ls.Underline = true
+			ls.FG = Blue
+			l.inline(c, ls, skip, out)
+		case *ast.AutoLink:
+			url := string(c.URL(l.src))
+			ls := st
+			ls.Link = l.addLink(url, "")
+			ls.Underline = true
+			ls.FG = Blue
+			*out = append(*out, Span{Text: string(c.Label(l.src)), Style: ls, Src: l.srcOf(c)})
+		case *ast.Image:
+			is := st
+			is.Link = l.addLink(string(c.Destination), string(c.Title))
+			is.FG = Blue
+			is.Italic = true
+			alt := plainText(l.inlines(c, is, -1))
+			if alt == "" {
+				alt = "image"
+			}
+			*out = append(*out, Span{Text: "🖼 " + alt, Style: is, Src: l.srcOf(c)})
+		case *ast.RawHTML:
+			hs := st
+			hs.Dim = true
+			for i := 0; i < c.Segments.Len(); i++ {
+				seg := c.Segments.At(i)
+				*out = append(*out, Span{Text: string(seg.Value(l.src)), Style: hs, Src: seg.Start})
+			}
+		case *east.TaskCheckBox:
+			// Shown as the list marker instead.
+		case *east.FootnoteLink:
+			fs := st
+			fs.FG = Blue
+			*out = append(*out, Span{Text: superscript(c.Index), Style: fs, Src: -1})
+		case *east.FootnoteBacklink:
+			// Not needed in a terminal.
+		default:
+			l.inline(c, st, skip, out)
+		}
+	}
+}
+
+// text appends plain text, turning :rex: into the Rex mark.
+func (l *layout) text(s string, st Style, src int, out *[]Span) {
+	for {
+		i := strings.Index(s, ":rex:")
+		if i < 0 {
+			break
+		}
+		if i > 0 {
+			*out = append(*out, Span{Text: s[:i], Style: st, Src: src})
+		}
+		*out = append(*out, Span{Text: RexMark, Style: st, Src: src + i})
+		s = s[i+5:]
+		src += i + 5
+	}
+	if s != "" {
+		*out = append(*out, Span{Text: s, Style: st, Src: src})
+	}
+}
+
+// RexMark stands in for :rex:. Terminals with kitty graphics will get the
+// real icon later.
+const RexMark = "🦖"
+
+func (l *layout) addLink(dest, title string) int {
+	l.doc.Links = append(l.doc.Links, Link{Dest: dest, Title: title})
+	return len(l.doc.Links) - 1
+}
+
+func truncate(s string, w int) string {
+	if textWidth(s) <= w {
+		return s
+	}
+	return runewidthTruncate(s, w-1) + "…"
+}
