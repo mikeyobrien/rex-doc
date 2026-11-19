@@ -121,6 +121,21 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 - Later: send Rex's team an icon for rdxt, so Rex can show it in tabs.
 - Maybe later: the Discord `:rexie_*:` emoji (like `:rexie_starstruck:` from the changelog).
 
+### Images
+
+Images support the text; they don't take it over. This isn't a word processor.
+
+- **An image on its own line is a figure:** centered in the reading column, in a thin dim rounded frame, with a numbered caption from the alt text (or title) in dim italics: *Figure 2 · Gateway auth failure*.
+- **Never full quality.** rdxt reads only the image's header to lay it out, then decodes it once in the background, scales it to the size it's shown at (2× the cell size in pixels, for Retina), and caches the scaled copy in `~/.cache/rdxt`. Text shows instantly; each image appears when it's ready, and only when it's near the screen.
+- **Size rules:** at most the reading width and about a third of the screen tall, keeping its proportions. Small images are never scaled up.
+- **Images inside a sentence** (badges, icons) are a small text chip (`🖼 alt`) instead of breaking the line.
+- **Tap a figure** for a closer look: a larger (still scaled) version in a floating Rex window. `q` closes it.
+- **Cards, never broken boxes:** remote images show a card with the alt text and the website's domain (a tap opens it in the browser; rdxt never downloads them). Missing files say "image not found" with the path. SVG and other formats get a card for now.
+- **Outside Rex,** and in `rdxt -p`, figures are cards with their captions.
+- **Source mode** keeps `![alt](path)` as text.
+- **How:** kitty graphics with **Unicode placeholders**, so images are tied to text cells and scroll with the text at no extra cost. Rex supports them (`scripts/image-probe.py`, 2026-11-19) and keeps the image's proportions inside its cells. Direct placement stretched the image, so it isn't used.
+- **Later:** custom anchors and links to any spot in a document.
+
 ## Layout by width
 
 | Pane width | Layout |

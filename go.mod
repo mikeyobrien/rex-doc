@@ -14,5 +14,6 @@ require (
 require (
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
+	golang.org/x/image v0.48.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 )
