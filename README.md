@@ -2,7 +2,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/travelingflwr/rex-doc?style=social)](https://github.com/travelingflwr/rex-doc/stargazers)
 
-**The best way to read Markdown in a terminal.** It works in any terminal and looks best in [Rex](https://superlogical.com).
+**Made for [Rex](https://superlogical.com).** The best way to read Markdown in a terminal. It works in any terminal, but it's designed around Rex: its panes, its floating windows and its palette.
 
 `rdxt` ("read text") opens a Markdown file as real terminal text, not a picture. So it uses your terminal's font, size and theme, zooms with ⌘+, and works with selection and scrolling, including on the iPad.
 
