@@ -27,6 +27,7 @@ const (
 	searching       // typing a search
 	hinting         // link hints are shown
 	outlining       // the outline is shown
+	helping         // the help screen is shown
 )
 
 // place is a spot in a file, for Back and Forward.
@@ -71,6 +72,15 @@ type viewer struct {
 
 	// Outline: the selected heading.
 	osel int
+
+	// rich is true in Rex, where the top bar is graphical.
+	rich bool
+	// floating is true when Rex shows rdxt in a floating layer.
+	floating bool
+	// hits are the top bar's click targets.
+	hits []hit
+	// quit is set by the close pill.
+	quit bool
 }
 
 type match struct {
@@ -92,7 +102,7 @@ func Run(path string) error {
 	if err != nil {
 		return err
 	}
-	v := &viewer{path: abs, out: out, sel: -1}
+	v := &viewer{path: abs, out: out, sel: -1, rich: inRex()}
 	if err := v.load(); err != nil {
 		return err
 	}
@@ -111,6 +121,13 @@ func Run(path string) error {
 		v.flash, v.flashT, v.flashFor = "★ Enjoying rdxt? A star helps: github.com/travelingflwr/rex-doc", time.Now(), 8*time.Second
 	}
 	v.draw()
+
+	// Ask Rex whether we're floating, after the first screen is up.
+	floatCh := make(chan bool, 1)
+	if v.rich {
+		rexLabel(v.path)
+		go func() { floatCh <- rexFloating() }()
+	}
 
 	keys := make(chan []byte, 16)
 	go func() {
@@ -139,6 +156,8 @@ func Run(path string) error {
 			if v.input(b) {
 				return nil
 			}
+		case f := <-floatCh:
+			v.floating = f
 		case <-winch:
 			v.resize()
 		case <-tick.C:
@@ -216,7 +235,7 @@ func (v *viewer) setFlash(s string) { v.flash, v.flashT, v.flashFor = s, time.No
 
 // rows is the number of document rows: the screen less the status line and
 // the blank line above it.
-func (v *viewer) rows() int { return max(v.height-2, 1) }
+func (v *viewer) rows() int { return max(v.height-v.topH()-2, 1) }
 
 func (v *viewer) maxTop() int { return max(len(v.doc.Lines)-v.rows(), 0) }
 
@@ -251,10 +270,19 @@ func (v *viewer) input(b []byte) bool {
 			return true
 		}
 	}
-	return false
+	return v.quit
 }
 
 func (v *viewer) mouse(btn, x, y int, press bool) {
+	top := v.topH()
+	if btn&^(4|8|16) == 0 && !press && y < top {
+		if v.state == reading || v.state == helping || v.state == outlining {
+			v.state = reading
+			v.barClick(x)
+		}
+		return
+	}
+	y -= top
 	switch btn &^ (4 | 8 | 16) {
 	case 64:
 		if v.state == outlining {
@@ -274,7 +302,7 @@ func (v *viewer) mouse(btn, x, y int, press bool) {
 		}
 		// A click (on release) follows a link.
 		if v.state == outlining {
-			if i := v.outlineTop() + y - 1; i >= 0 && i < len(v.doc.Headings) {
+			if i := v.outlineTop() + y - 2; i >= 0 && i < len(v.doc.Headings) {
 				v.osel = i
 				v.key("\r")
 			}
@@ -332,6 +360,11 @@ func (v *viewer) key(k string) bool {
 		return false
 	case outlining:
 		v.outlineKey(k)
+		return false
+	case helping:
+		if k == "esc" || k == "?" || k == "q" || k == "\x03" {
+			v.state = reading
+		}
 		return false
 	}
 	if v.pending == "g" {
@@ -393,6 +426,8 @@ func (v *viewer) key(k string) bool {
 		v.nextMatch(-1)
 	case "o":
 		v.openOutline()
+	case "?":
+		v.state = helping
 	case "m":
 		if v.doc.HasFrontmatter {
 			v.showFM = !v.showFM
@@ -566,6 +601,9 @@ func (v *viewer) visit(file, anchor string) {
 		v.back = append(v.back, here)
 		v.fwd = nil
 		v.reset()
+		if v.rich {
+			rexLabel(v.path)
+		}
 	} else {
 		v.back = append(v.back, here)
 		v.fwd = nil
@@ -627,6 +665,9 @@ func (v *viewer) goTo(p place) {
 			return
 		}
 		v.reset()
+		if v.rich {
+			rexLabel(v.path)
+		}
 	}
 	v.top = v.doc.LineForSrc(p.src)
 	if p.src == 0 {
@@ -812,10 +853,18 @@ func (v *viewer) outlineTop() int {
 func (v *viewer) draw() {
 	var b strings.Builder
 	b.WriteString("\x1b[?2026h\x1b[H")
+	bar, hits := v.bar()
+	v.hits = hits
+	for _, line := range bar {
+		b.WriteString("\x1b[2K" + line + "\r\n")
+	}
 	rows := v.rows()
-	if v.state == outlining {
+	switch v.state {
+	case outlining:
 		v.drawOutline(&b, rows)
-	} else {
+	case helping:
+		v.drawHelp(&b, rows)
+	default:
 		over := v.overlays()
 		for r := 0; r < rows; r++ {
 			b.WriteString("\x1b[2K")
@@ -906,6 +955,15 @@ func (v *viewer) drawOutline(b *strings.Builder, rows int) {
 func (v *viewer) status() string {
 	name := filepath.Base(v.path)
 	left := name
+	if v.rich {
+		// The bar and Rex's header already show the file; show the section.
+		left = ""
+		for _, h := range v.doc.Headings {
+			if h.Line <= v.top+1 {
+				left = "§ " + h.Text
+			}
+		}
+	}
 	pos := "All"
 	if v.maxTop() > 0 {
 		switch v.top {
@@ -927,6 +985,8 @@ func (v *viewer) status() string {
 		right = "type a letter · Esc cancel"
 	case v.state == outlining:
 		right = "Outline"
+	case v.state == helping:
+		right = "Help"
 	case v.flash != "":
 		right = v.flash + " · " + right
 	case v.sel >= 0:
@@ -937,7 +997,7 @@ func (v *viewer) status() string {
 	case v.doc.HasFrontmatter && !v.showFM:
 		right = "m frontmatter · " + right
 	}
-	if len(v.back) > 0 && v.state == reading && v.flash == "" && v.sel < 0 {
+	if !v.rich && len(v.back) > 0 && v.state == reading && v.flash == "" && v.sel < 0 {
 		left = "‹ " + left
 	}
 	margin := v.doc.Margin
