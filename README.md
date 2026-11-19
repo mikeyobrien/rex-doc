@@ -35,6 +35,12 @@ rdxt new --template plan fix-login
 
 Press `?` in rdxt for every key.
 
+![rdxt showing an agent's plan in Rex: the top bar, a capitalized title, an alert and ticked tasks](docs/screenshots/view.png)
+
+| Source mode (`e`) | Search (`/`) | Outline (`o`) |
+|---|---|---|
+| ![Source mode with syntax colors and line numbers](docs/screenshots/source.png) | ![Search with every match highlighted](docs/screenshots/search.png) | ![The outline of a document](docs/screenshots/outline.png) |
+
 ## The idea
 
 - **View mode** (the default): the rendered document. Links to other `.md` files open in place, with Back and Forward.
