@@ -4,7 +4,7 @@
 
 ## Markdown, made for [Rex](https://superlogical.com).
 
-Read and write Markdown as real text: fast, with links you can follow, at home in your terminal. rdxt is a terminal app (a TUI), not a separate window: it runs in a Rex pane, a floating Rex window or any terminal, and hooks into Rex's palette, Cmd-click and your coding agents. rdxt is a terminal app (a TUI), not a separate window: it runs in a Rex pane, a floating Rex window or any terminal, and hooks into Rex's palette, Cmd-click and your coding agents. It works in any terminal, but it's designed around Rex: its panes, its floating windows and its palette.
+Read and write Markdown as real text: fast, with links you can follow, at home in your terminal. rdxt is a terminal app (a TUI), not a separate window: it runs in a Rex pane, a floating Rex window or any terminal, and hooks into Rex's palette, Cmd-click and your coding agents. It works in any terminal, but it's designed around Rex: its panes, its floating windows and its palette.
 
 `rdxt` ("read text") opens a Markdown file as real terminal text, not a picture. So it uses your terminal's font, size and theme, zooms with ⌘+, and works with selection and scrolling, including on the iPad.
 
