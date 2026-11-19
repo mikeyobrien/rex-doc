@@ -30,7 +30,7 @@ var md = goldmark.New(
 )
 
 // Render parses Markdown and lays it out for a terminal termWidth cells wide.
-func Render(src []byte, termWidth int) *Doc {
+func Render(src []byte, termWidth int, opts Options) *Doc {
 	if termWidth < 10 {
 		termWidth = 10
 	}
@@ -46,7 +46,10 @@ func Render(src []byte, termWidth int) *Doc {
 	root := md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	l := &layout{src: src, width: d.Width, doc: d, slugs: map[string]int{}}
 	if items, err := meta.TryGetItems(ctx); err == nil && len(items) > 0 {
-		l.frontmatter(items)
+		d.HasFrontmatter = true
+		if opts.ShowFrontmatter {
+			l.frontmatter(items)
+		}
 	}
 	l.blocks(root, nil, nil, false)
 	// Drop trailing blank lines.
@@ -382,17 +385,62 @@ func (l *layout) code(n ast.Node, lang string, first, rest []Span) {
 	}
 }
 
+// frontmatter draws the YAML frontmatter as a card: keys in a column, values
+// beside them, lists joined with commas.
 func (l *layout) frontmatter(items yaml.MapSlice) {
+	border := Plain.With(BrightBlack)
 	key := Style{FG: BrightBlack, BG: Default, Link: -1}
-	val := Style{FG: Default, BG: Default, Dim: true, Link: -1}
-	gutter := Span{Text: "│ ", Style: Plain.With(BrightBlack), Src: -1}
+	keyW := 0
 	for _, it := range items {
-		k := fmt.Sprint(it.Key)
-		v := strings.TrimSpace(strings.ReplaceAll(fmt.Sprint(it.Value), "\n", " "))
-		spans := []Span{{Text: k + ": ", Style: key, Src: 0}, {Text: v, Style: val, Src: 0}}
-		l.emit(wrap(spans, l.width, []Span{gutter}, []Span{gutter, {Text: spaces(textWidth(k) + 2), Style: Plain, Src: -1}}, 0)...)
+		keyW = max(keyW, textWidth(fmt.Sprint(it.Key)))
 	}
+	keyW = min(keyW, 16)
+	// The card is as wide as its content needs, up to the full width.
+	natural := 0
+	values := make([]string, len(items))
+	for i, it := range items {
+		values[i] = yamlValue(it.Value)
+		natural = max(natural, keyW+2+textWidth(values[i]))
+	}
+	inner := min(max(natural, 20), l.width-4)
+	title := " frontmatter "
+	top := "╭─" + title + strings.Repeat("─", max(inner+2-1-textWidth(title), 0)) + "╮"
+	l.emit(Line{Spans: []Span{{Text: top, Style: border, Src: 0}}, Src: 0})
+	bar := Span{Text: "│ ", Style: border, Src: -1}
+	for i, it := range items {
+		k := runewidthTruncate(fmt.Sprint(it.Key), keyW)
+		first := []Span{bar, {Text: k + spaces(keyW-textWidth(k)+2), Style: key, Src: 0}}
+		rest := []Span{bar, {Text: spaces(keyW + 2), Style: Plain, Src: -1}}
+		lines := wrap([]Span{{Text: values[i], Style: Plain, Src: 0}}, inner+2, first, rest, 0)
+		for _, ln := range lines {
+			pad := inner + 2 - spansWidth(ln.Spans)
+			ln.Spans = append(ln.Spans, Span{Text: spaces(pad) + " │", Style: border, Src: -1})
+			l.emit(ln)
+		}
+	}
+	l.emit(Line{Spans: []Span{{Text: "╰" + strings.Repeat("─", inner+2) + "╯", Style: border, Src: -1}}, Src: -1})
 	l.emit(Line{Src: -1})
+}
+
+// yamlValue turns a frontmatter value into one line of text.
+func yamlValue(v any) string {
+	switch v := v.(type) {
+	case []any:
+		parts := make([]string, len(v))
+		for i, e := range v {
+			parts[i] = yamlValue(e)
+		}
+		return strings.Join(parts, ", ")
+	case yaml.MapSlice:
+		parts := make([]string, len(v))
+		for i, e := range v {
+			parts[i] = fmt.Sprint(e.Key) + ": " + yamlValue(e.Value)
+		}
+		return strings.Join(parts, ", ")
+	case nil:
+		return "—"
+	}
+	return strings.TrimSpace(strings.ReplaceAll(fmt.Sprint(v), "\n", " "))
 }
 
 func (l *layout) footnotes(n *east.FootnoteList, first, rest []Span) {

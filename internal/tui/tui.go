@@ -33,6 +33,8 @@ type viewer struct {
 	flashT time.Time
 	// pending holds a key that starts a two-key command, like "g" in "gg".
 	pending string
+	// showFM shows the frontmatter card (toggled with m).
+	showFM bool
 }
 
 // Run shows path full screen until the user quits.
@@ -93,6 +95,11 @@ func Run(path string) error {
 		case <-winch:
 			v.resize()
 		case <-tick.C:
+			// Some terminals (Rex on iPad) don't always send SIGWINCH, so
+			// check the size here too.
+			if w, h, err := term.GetSize(int(v.out.Fd())); err == nil && (w != v.width || h != v.height) {
+				v.resize()
+			}
 			v.checkReload()
 			if v.flash != "" && time.Since(v.flashT) > 2*time.Second {
 				v.flash = ""
@@ -123,7 +130,7 @@ func (v *viewer) relayout() {
 	if v.doc != nil && v.top > 0 {
 		anchor = v.doc.SrcForLine(v.top)
 	}
-	v.doc = doc.Render(v.src, v.width)
+	v.doc = doc.Render(v.src, v.width, doc.Options{ShowFrontmatter: v.showFM})
 	if anchor >= 0 {
 		v.top = v.doc.LineForSrc(anchor)
 	}
@@ -152,7 +159,9 @@ func (v *viewer) checkReload() {
 
 func (v *viewer) setFlash(s string) { v.flash, v.flashT = s, time.Now() }
 
-func (v *viewer) rows() int { return max(v.height-1, 1) }
+// rows is the number of document rows: the screen less the status line and
+// the blank line above it.
+func (v *viewer) rows() int { return max(v.height-2, 1) }
 
 func (v *viewer) maxTop() int { return max(len(v.doc.Lines)-v.rows(), 0) }
 
@@ -248,6 +257,14 @@ func (v *viewer) key(k string) bool {
 		v.top = 0
 	case "G", "end":
 		v.top = v.maxTop()
+	case "m":
+		if v.doc.HasFrontmatter {
+			v.showFM = !v.showFM
+			v.relayout()
+			if v.showFM {
+				v.top = 0
+			}
+		}
 	case "}":
 		v.jumpHeading(1)
 	case "{":
@@ -293,7 +310,7 @@ func (v *viewer) draw() {
 		b.WriteString(v.doc.Format(v.top+r, true))
 		b.WriteString("\r\n")
 	}
-	b.WriteString("\x1b[2K")
+	b.WriteString("\x1b[2K\r\n\x1b[2K")
 	b.WriteString(v.status())
 	b.WriteString("\x1b[?2026l")
 	v.write(b.String())
@@ -313,6 +330,9 @@ func (v *viewer) status() string {
 		}
 	}
 	right := "View · " + pos
+	if v.doc.HasFrontmatter && !v.showFM {
+		right = "m frontmatter · " + right
+	}
 	if v.flash != "" {
 		right = v.flash + " · " + right
 	}

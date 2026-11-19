@@ -134,6 +134,15 @@ type Doc struct {
 	Margin int
 	// Width is the content width the document was laid out for.
 	Width int
+	// HasFrontmatter is true when the document starts with YAML frontmatter,
+	// whether or not it is shown.
+	HasFrontmatter bool
+}
+
+// Options change how a document is laid out.
+type Options struct {
+	// ShowFrontmatter shows the frontmatter card at the top.
+	ShowFrontmatter bool
 }
 
 // LineForSrc returns the index of the first line at or after source offset src.

@@ -60,7 +60,7 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 
 - **CommonMark** plus **GFM**: tables, task lists, strikethrough, autolinks and footnotes
 - **GitHub alerts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
-- **YAML frontmatter**, shown as a compact header card that can be collapsed
+- **YAML frontmatter**, **hidden by default in View mode.** `m` shows it as a card at the top: a rounded box titled "frontmatter", with keys in a column and values beside them (lists joined with commas). When it's hidden, the status line shows `m frontmatter` as a hint. Most editors show frontmatter badly in their preview, so it should look deliberate. `rdxt -p` always prints it.
 - **Math**: inline and block, with a best-effort Unicode version in the view and always shown exactly in Source
 - **`:::` directives** (the generic directive syntax that T3 Code, MyST and Comark use). These are also the extension point for later features.
 
@@ -152,6 +152,9 @@ v1 shouldn't block any of this: keep the source positions and the reload path cl
 
 ## Decided
 
+- **No settings while in development.** rdxt is 100% opinionated: one look, no themes. Themes may come later.
+- **Status line:** has one blank line of padding above it.
+
 - **Mode keys:** `e` goes from View to Source, and `Esc` goes back. Not `Tab`.
 - **Source editing:** vim-like by default, with a modeless setting.
 
@@ -167,4 +170,7 @@ Rex 0.1.0-preview.21 on macOS, using `scripts/probe.py` and `scripts/mouse-probe
 
 ## Open questions
 
-- None right now. Both earlier questions (OSC 66 and mouse clicks) are answered above.
+- **Text selection for copying:** tabled for later. Rex keeps Shift-click for itself, so Shift-drag may already select text while rdxt has the mouse.
+- **"Silent" edits in View mode:** should interactive elements change the file directly from View mode? Toggling a task checkbox is the first example. Others could be ticking off a review item or editing a frontmatter value. If yes, each one needs a visible flash ("saved") and an undo.
+- **Checkbox size:** ☐/☑ looks small in Rex. Options are being compared.
+- **Resizing on iPad:** Rex on iPad doesn't seem to send SIGWINCH, so rdxt now also checks the size every 400 ms.
