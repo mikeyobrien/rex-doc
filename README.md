@@ -14,6 +14,10 @@
 - **Adapts to the pane:** compact in narrow panes (phone, iPad split view), with an outline sidebar in wide ones.
 - **Supports** CommonMark, GFM, GitHub alerts, frontmatter, math and `:::` directives.
 
+## Contributing
+
+rdxt is deliberately opinionated. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before sending a pull request. It explains the design decisions and why pull requests that go against them are declined.
+
 ## License
 
 MIT
