@@ -1,6 +1,8 @@
 # Contributing to rex-doc
 
-Thanks for helping! Bug reports and pull requests are welcome.
+Thanks for helping! Bug reports, ideas and pull requests are welcome.
+
+**For now, open an issue before a pull request.** rdxt is young and its design is still settling, so let's agree on a change before you spend time on it. Pull requests without an agreed issue may be closed, kindly.
 
 Please read this page before sending a pull request. rdxt is deliberately **opinionated**: its look and behavior come from a set of design decisions. A pull request that goes against one of them will be declined, however well it's written. That isn't about the quality of your work. It keeps rdxt consistent. If you'd like to challenge a decision, open an issue to discuss it first.
 

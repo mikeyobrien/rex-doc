@@ -1,0 +1,45 @@
+name: Bug report
+description: Something renders wrong, a key misbehaves, or rdxt crashes.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: markdown
+    attributes:
+      label: Markdown that shows it
+      description: The smallest piece of Markdown that reproduces it, if it's about rendering.
+      render: markdown
+  - type: input
+    id: rdxt
+    attributes:
+      label: rdxt version
+      description: Output of `rdxt --version`.
+      placeholder: rdxt v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal and version
+      description: Rex (Mac or iPad, with its version), or another terminal.
+      placeholder: Rex 0.1.0-preview.32 on Mac
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Platform
+      options: [macOS, Linux, iPad (via Rex), Other]
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: For anything visual, a screenshot helps a lot. Drag it in here.

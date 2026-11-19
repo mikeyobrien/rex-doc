@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Design decisions and how to contribute
+    url: https://github.com/travelingflwr/rex-doc/blob/main/CONTRIBUTING.md
+    about: Why rdxt looks and works the way it does, and which changes are welcome.

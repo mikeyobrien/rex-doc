@@ -1,0 +1,22 @@
+name: Idea or feature request
+description: Something rdxt could do. Please read CONTRIBUTING.md's design decisions first.
+labels: [idea]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The problem or the moment where rdxt falls short, before any solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+  - type: checkboxes
+    id: read
+    attributes:
+      label: Design decisions
+      options:
+        - label: I've read the settled decisions in CONTRIBUTING.md, and this doesn't go against one (or I explain why it should change).
+          required: true
