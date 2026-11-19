@@ -97,6 +97,11 @@ type viewer struct {
 
 	inFd     int
 	oldState *term.State
+
+	// images tracks figures' scaled copies (in Rex); cellW and cellH are the
+	// cell size in pixels.
+	images       *imageState
+	cellW, cellH int
 }
 
 type match struct {
@@ -133,6 +138,11 @@ func Run(path string) error {
 	v.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
 	defer v.write("\x1b[?1006l\x1b[?1000l\x1b[0 q\x1b[?25h\x1b[?1049l")
 
+	if v.rich {
+		v.images = newImageState()
+		v.cellW, v.cellH = cellSize(int(out.Fd()))
+		defer v.write("\x1b_Ga=d,d=A,q=2\x1b\\")
+	}
 	v.resize()
 	if launches() == starAskLaunch {
 		v.flash, v.flashT, v.flashFor = "★ Enjoying rdxt? A star helps: github.com/travelingflwr/rex-doc", time.Now(), 8*time.Second
@@ -163,6 +173,10 @@ func Run(path string) error {
 	defer signal.Stop(winch)
 	tick := time.NewTicker(400 * time.Millisecond)
 	defer tick.Stop()
+	var imgReady chan thumb
+	if v.images != nil {
+		imgReady = v.images.ready
+	}
 
 	for {
 		select {
@@ -175,6 +189,8 @@ func Run(path string) error {
 			}
 		case f := <-floatCh:
 			v.floating = f
+		case t := <-imgReady:
+			v.sendImage(t)
 		case <-winch:
 			v.resize()
 		case <-tick.C:
@@ -215,7 +231,13 @@ func (v *viewer) relayout() {
 	}
 	opts := doc.OptionsFor(v.path)
 	opts.ShowFrontmatter = v.showFM
+	opts.Images = v.rich
+	if v.cellW > 0 {
+		opts.CellW, opts.CellH = v.cellW, v.cellH
+	}
+	opts.ScreenRows = v.height
 	v.doc = doc.Render(v.src, v.width, opts)
+	v.forgetImages()
 	if anchor >= 0 {
 		v.top = v.doc.LineForSrc(anchor)
 	}
@@ -611,6 +633,8 @@ func (v *viewer) follow(l int) {
 	switch {
 	case dest == "":
 		return
+	case v.doc.Links[l].Image && !isURL(dest):
+		v.showImage(dest)
 	case strings.HasPrefix(dest, "#"):
 		v.jumpAnchor(dest[1:], true)
 	case isURL(dest):
@@ -938,6 +962,7 @@ func (v *viewer) outlineTop() int {
 // ---- Drawing ----
 
 func (v *viewer) draw() {
+	v.requestNearby()
 	var b strings.Builder
 	b.WriteString("\x1b[?2026h\x1b[H")
 	bar, hits := v.bar()

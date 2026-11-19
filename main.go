@@ -46,6 +46,7 @@ func main() {
 	fs := flag.NewFlagSet("rdxt", flag.ContinueOnError)
 	fs.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 	var print, noColor, showVersion bool
+	var imagePath string
 	var width int
 	fs.BoolVar(&print, "p", false, "")
 	fs.BoolVar(&print, "print", false, "")
@@ -54,6 +55,7 @@ func main() {
 	fs.BoolVar(&noColor, "no-color", false, "")
 	fs.BoolVar(&showVersion, "v", false, "")
 	fs.BoolVar(&showVersion, "version", false, "")
+	fs.StringVar(&imagePath, "image", "", "")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		if err == flag.ErrHelp {
 			return
@@ -63,6 +65,13 @@ func main() {
 	if showVersion {
 		fmt.Println("rdxt", version)
 		fmt.Println("★ Like it? Star it: https://github.com/travelingflwr/rex-doc")
+		return
+	}
+	if imagePath != "" {
+		if err := tui.RunImage(imagePath); err != nil {
+			fmt.Fprintln(os.Stderr, "rdxt:", err)
+			os.Exit(1)
+		}
 		return
 	}
 	if fs.NArg() != 1 {

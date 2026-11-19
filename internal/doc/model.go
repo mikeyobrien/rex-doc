@@ -5,6 +5,7 @@
 package doc
 
 import (
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -47,6 +48,9 @@ type Style struct {
 	Strike    bool
 	// Link is the index of the link this text belongs to in Doc.Links, or -1.
 	Link int
+	// Image, when not 0, is a kitty image ID: the text is placeholder cells
+	// and the ID is sent as its 24-bit foreground color.
+	Image uint32
 }
 
 // Plain is the default style.
@@ -73,7 +77,9 @@ func (s Style) SGR() string {
 	if s.Strike {
 		codes = append(codes, "9")
 	}
-	if s.FG >= 0 {
+	if s.Image != 0 {
+		codes = append(codes, fmt.Sprintf("38;2;%d;%d;%d", s.Image>>16&0xFF, s.Image>>8&0xFF, s.Image&0xFF))
+	} else if s.FG >= 0 {
 		if s.FG < 8 {
 			codes = append(codes, strconv.Itoa(30+int(s.FG)))
 		} else {
@@ -122,6 +128,8 @@ type Line struct {
 type Link struct {
 	Dest  string
 	Title string
+	// Image is true for an image's link: following it shows the image.
+	Image bool
 }
 
 // Heading is an entry in the document outline.
@@ -144,6 +152,8 @@ type Doc struct {
 	// HasFrontmatter is true when the document starts with YAML frontmatter,
 	// whether or not it is shown.
 	HasFrontmatter bool
+	// Figures are the images drawn as figures.
+	Figures []Figure
 }
 
 // Options change how a document is laid out.
@@ -152,11 +162,20 @@ type Options struct {
 	ShowFrontmatter bool
 	// Dok lays the source out as a Dok document instead of Markdown.
 	Dok bool
+	// Images draws figures with kitty graphics placeholders (in Rex).
+	// Without it, figures are cards.
+	Images bool
+	// CellW and CellH are the terminal's cell size in pixels, and
+	// ScreenRows its height, for sizing figures.
+	CellW, CellH, ScreenRows int
+	// BaseDir is where relative image paths start from.
+	BaseDir string
 }
 
 // OptionsFor returns the options a file needs, by its extension.
 func OptionsFor(path string) Options {
-	return Options{Dok: strings.EqualFold(filepath.Ext(path), ".dok")}
+	return Options{Dok: strings.EqualFold(filepath.Ext(path), ".dok"), BaseDir: filepath.Dir(path),
+		CellW: 8, CellH: 16, ScreenRows: 40}
 }
 
 // LineForSrc returns the index of the first line at or after source offset src.

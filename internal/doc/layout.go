@@ -48,7 +48,7 @@ func Render(src []byte, termWidth int, opts Options) *Doc {
 	}
 	ctx := parser.NewContext()
 	root := md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
-	l := &layout{src: src, width: d.Width, doc: d, slugs: map[string]int{}}
+	l := &layout{src: src, width: d.Width, doc: d, slugs: map[string]int{}, opts: opts}
 	if items, err := meta.TryGetItems(ctx); err == nil && len(items) > 0 {
 		d.HasFrontmatter = true
 		if opts.ShowFrontmatter {
@@ -68,6 +68,8 @@ func Render(src []byte, termWidth int, opts Options) *Doc {
 }
 
 type layout struct {
+	opts      Options
+	figures   int
 	src       []byte
 	width     int
 	doc       *Doc
@@ -152,6 +154,10 @@ func (l *layout) block(n ast.Node, first, rest []Span) {
 	case *ast.Heading:
 		l.heading(n, first, rest)
 	case *ast.Paragraph, *ast.TextBlock:
+		if img := soloImage(n, l.src); img != nil {
+			l.figure(img, first, rest)
+			return
+		}
 		spans := l.inlines(n, Plain, -1)
 		l.emit(wrap(spans, l.width, first, rest, l.srcOf(n))...)
 	case *ast.Blockquote:
