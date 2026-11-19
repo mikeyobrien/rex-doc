@@ -310,24 +310,39 @@ func (l *layout) list(n *ast.List, first, rest []Span) {
 		if i > 0 && !n.IsTight {
 			l.blank(rest)
 		}
-		var marker Span
+		var marker []Span
+		done := false
+		bold := Style{FG: Default, BG: Default, Bold: true, Link: -1}
 		switch {
 		case taskBox(item) != nil:
+			// Round brackets: ( ) when open, (✔) when done.
 			if taskBox(item).IsChecked {
-				marker = Span{Text: "●", Style: Style{FG: Green, BG: Default, Bold: true, Link: -1}, Src: -1}
+				done = true
+				marker = []Span{{Text: "(", Style: bold, Src: -1}, {Text: "✔", Style: Style{FG: Green, BG: Default, Bold: true, Link: -1}, Src: -1}, {Text: ")", Style: bold, Src: -1}}
 			} else {
-				marker = Span{Text: "○", Style: Plain.With(BrightBlack), Src: -1}
+				marker = []Span{{Text: "( )", Style: bold, Src: -1}}
 			}
 		case n.IsOrdered():
-			marker = Span{Text: fmt.Sprintf("%*d.", numW, num), Style: Plain.With(BrightBlack), Src: -1}
+			marker = []Span{{Text: fmt.Sprintf("%*d.", numW, num), Style: Plain.With(BrightBlack), Src: -1}}
 			num++
 		default:
-			marker = Span{Text: bullets[(l.listDepth-1)%len(bullets)], Style: Plain.With(BrightBlack), Src: -1}
+			marker = []Span{{Text: bullets[(l.listDepth-1)%len(bullets)], Style: Plain.With(BrightBlack), Src: -1}}
 		}
-		mw := textWidth(marker.Text) + 1
-		f := append(clone(p), marker, Span{Text: " ", Style: Plain, Src: -1})
+		mw := spansWidth(marker) + 1
+		f := append(append(clone(p), marker...), Span{Text: " ", Style: Plain, Src: -1})
 		r := append(clone(rest), Span{Text: spaces(mw), Style: Plain, Src: -1})
+		startLine := len(l.doc.Lines)
 		l.blocks(item, f, r, n.IsTight)
+		if done {
+			// A finished task's text fades back.
+			for li := startLine; li < len(l.doc.Lines); li++ {
+				for si := range l.doc.Lines[li].Spans {
+					if l.doc.Lines[li].Spans[si].Src >= 0 {
+						l.doc.Lines[li].Spans[si].Style.Dim = true
+					}
+				}
+			}
+		}
 		i++
 	}
 }

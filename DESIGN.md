@@ -71,7 +71,7 @@ Target: everything **Software Mansion's enriched-markdown** supports, so the sam
 | H1/H2 | Bigger text where the terminal supports kitty text sizing (OSC 66, detected at start-up). Otherwise bold, colored, with a rule under H1. |
 | H3–H6 | Weight and color steps |
 | Paragraphs | Wrapped to the reading width, never broken mid-word |
-| Lists | Hanging indents. Task lists show round markers: ○ for open (dim) and ● for done (bold green). **`Space` toggles one and saves the file.** |
+| Lists | Hanging indents. Task lists show round brackets: a bold `( )` when open, and a bold `(✔)` with a green heavy check when done. A finished task's text is dimmed. **`Space` toggles one and saves the file.** |
 | Blockquotes | A colored left bar `▎` |
 | Alerts | A left bar in the alert's color, an icon and a title row |
 | Code blocks | A shaded background, the language label at top right, Chroma highlighting. In narrow panes, a long line scrolls sideways instead of wrapping. |
@@ -154,7 +154,7 @@ v1 shouldn't block any of this: keep the source positions and the reload path cl
 
 - **No settings while in development.** rdxt is 100% opinionated: one look, no themes. Themes may come later.
 - **Status line:** has one blank line of padding above it.
-- **Task markers:** round, ○ and ●. Other styles may be added later.
+- **Task markers:** round brackets, `( )` and `(✔)`, with finished tasks dimmed. Other styles may be added later.
 
 - **Mode keys:** `e` goes from View to Source, and `Esc` goes back. Not `Tab`.
 - **Source editing:** vim-like by default, with a modeless setting.
