@@ -388,7 +388,7 @@ func installZsh(s *state) error {
 	if !strings.HasSuffix(os.Getenv("SHELL"), "zsh") {
 		return nil
 	}
-	rc := filepath.Join(home(), ".zshrc")
+	rc := filepath.Join(zdotdir(), ".zshrc")
 	old, err := os.ReadFile(rc)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -406,6 +406,20 @@ func installZsh(s *state) error {
 	}
 	s.Zshrc = rc
 	return nil
+}
+
+// zdotdir is the folder zsh reads .zshrc from: $ZDOTDIR as zsh sets it
+// (often in ~/.zshenv), or the home folder.
+func zdotdir() string {
+	if out, err := exec.Command("zsh", "-c", `print -r -- "${ZDOTDIR:-$HOME}"`).Output(); err == nil {
+		if d := strings.TrimSpace(string(out)); d != "" {
+			return d
+		}
+	}
+	if d := os.Getenv("ZDOTDIR"); d != "" {
+		return d
+	}
+	return home()
 }
 
 // ---- Undo ----
